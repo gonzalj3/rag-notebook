@@ -1,39 +1,9 @@
 {
   "name": "rag-notebook",
-  "version": "1.0.0",
-  "description": "A personal RAG-powered knowledge system for capturing, connecting, and retrieving everything I learn as I become an AI Engineer and founder. Articles, handwritten notes, tweets, LLM conversations, book passages, and typed reflections — all ingested, embedded, and queryable from browser and iPhone. All local models, no paid APIs.",
-  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/gonzalj3/rag-notebook.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/gonzalj3/rag-notebook/issues"
-  },
-  "homepage": "https://github.com/gonzalj3/rag-notebook#readme",
-  "dependencies": {
-    "@fontsource/ibm-plex-mono": "^5.2.7",
-    "@fontsource/lora": "^5.2.8",
-    "@fontsource/newsreader": "^5.2.10",
-    "@tanstack/react-router": "^1.168.10",
-    "@tanstack/router-plugin": "^1.167.12",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "zustand": "^5.0.12"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.3"
+    "client": "cd client && npm run dev",
+    "server": "cd server && python -m uvicorn app.main:app --reload",
+    "dev": "npm run client"
   }
 }
