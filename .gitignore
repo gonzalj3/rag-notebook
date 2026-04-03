@@ -41,8 +41,8 @@ coverage/
 htmlcov/
 .pytest_cache/
 
-# Models (large files)
-models/
+# Models (large files — ML weights, not code directories)
+/models/
 *.gguf
 *.bin
 *.safetensors
