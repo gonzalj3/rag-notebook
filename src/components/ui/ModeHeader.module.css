@@ -1,0 +1,40 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 36px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.dot {
+  color: var(--accent);
+  font-style: normal;
+}
+
+[data-mode="search"] .dot { color: var(--mode-color); }
+[data-mode="chat"] .dot { color: var(--mode-color); }
+[data-mode="projects"] .dot { color: var(--mode-color); }
+[data-mode="compose"] .dot { color: var(--mode-color); }
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.corpus {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

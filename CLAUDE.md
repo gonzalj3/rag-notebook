@@ -2,6 +2,15 @@
 
 Personal RAG-powered knowledge system. See README.md for project overview and IMPLEMENTATION_PLAN.md for build plan.
 
+## Tech Stack
+
+- **Web client:** Vite + React 19 + TypeScript + TanStack Router + CSS Modules + Zustand
+- **Server:** FastAPI + PostgreSQL + pgvector + BGE-M3 (future phase)
+- **On-device LLM:** WebLLM (browser), llama.cpp (iPhone)
+- **Styling:** CSS Modules with CSS custom properties. No Tailwind. Prototypes in /prototypes are the visual spec.
+- **Fonts:** IBM Plex Mono, Newsreader, Lora via Fontsource
+- **API client:** Plain fetch with typed wrappers. No HTTP library.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill

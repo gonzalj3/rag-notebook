@@ -1,0 +1,479 @@
+/* ============================================
+   ThinkingView — Photograph handwritten notes
+   3-state flow: camera -> scanning -> review
+   ============================================ */
+
+/* STATE 1: Viewfinder / Camera */
+.viewfinder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform var(--transition-ui);
+}
+
+.viewfinder:hover {
+  transform: scale(1.005);
+}
+
+.viewfinder:active {
+  transform: scale(0.998);
+}
+
+.viewfinderInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+}
+
+/* Corner guides */
+.corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: var(--accent);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.viewfinder:hover .corner {
+  opacity: 0.7;
+}
+
+.cornerTl {
+  composes: corner;
+  top: 20px;
+  left: 20px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  border-radius: 3px 0 0 0;
+}
+
+.cornerTr {
+  composes: corner;
+  top: 20px;
+  right: 20px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+  border-radius: 0 3px 0 0;
+}
+
+.cornerBl {
+  composes: corner;
+  bottom: 20px;
+  left: 20px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+  border-radius: 0 0 0 3px;
+}
+
+.cornerBr {
+  composes: corner;
+  bottom: 20px;
+  right: 20px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+  border-radius: 0 0 3px 0;
+}
+
+.viewfinderIcon {
+  font-size: 2.4rem;
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
+}
+
+.viewfinder:hover .viewfinderIcon {
+  opacity: 0.35;
+}
+
+.viewfinderText {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.viewfinderHint {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fileInput {
+  display: none;
+}
+
+/* Drag active state */
+.viewfinderDragActive {
+  border-color: var(--accent);
+}
+
+/* Or-divider */
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.orDividerText {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.uploadBtn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all var(--transition-ui);
+}
+
+.uploadBtn:hover {
+  border-color: var(--border-focus);
+  border-style: solid;
+  color: var(--text-secondary);
+  background: var(--surface-warm);
+}
+
+/* ============================================
+   STATE 2: Scanning
+   ============================================ */
+.scanCard {
+  position: relative;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.scanImageWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface-warm);
+}
+
+.scanImageWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 20px 4px var(--scan-color);
+  animation: scanSweep 1.5s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes scanSweep {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.scanStatus {
+  padding: 16px 20px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  animation: pulseText 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   STATE 3: Review
+   ============================================ */
+.reviewCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Photo thumbnail */
+.reviewPhoto {
+  position: relative;
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  background: var(--surface-warm);
+}
+
+.reviewPhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: white;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+/* Extracted text section */
+.reviewTextSection {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.reviewLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+}
+
+.extractedText {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 400;
+  line-height: 1.75;
+  outline: none;
+  resize: none;
+  min-height: 60px;
+  transition: color var(--transition-theme);
+}
+
+.extractedText::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.editHint {
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  margin-top: 8px;
+  letter-spacing: 0.03em;
+}
+
+/* Connection card */
+.connection {
+  margin: 0 20px 20px 20px;
+  padding: 14px 16px;
+  background: var(--connection-dim);
+  border: 1px solid rgba(176, 136, 64, 0.15);
+  border-radius: 8px;
+  transition: background var(--transition-theme);
+}
+
+.connectionLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--connection);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.connectionText {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.connectionSource {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  letter-spacing: 0.03em;
+}
+
+/* Reflection note section */
+.reviewNoteSection {
+  padding: 0 20px 20px 20px;
+}
+
+.reviewNoteToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  letter-spacing: 0.04em;
+  transition: color var(--transition-ui);
+}
+
+.reviewNoteToggle:hover {
+  color: var(--text-secondary);
+}
+
+.reviewNoteField {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+  margin-top: 0;
+}
+
+.reviewNoteFieldOpen {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.reviewNoteInput {
+  width: 100%;
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 300;
+  padding: 10px 14px;
+  outline: none;
+  resize: none;
+  line-height: 1.5;
+  min-height: 40px;
+  max-height: 80px;
+  transition: border-color var(--transition-ui);
+}
+
+.reviewNoteInput:focus {
+  border-color: var(--border-focus);
+}
+
+.reviewNoteInput::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* Tags row wrapper */
+.tagRow {
+  padding: 0 20px 16px 20px;
+}
+
+/* Save / capture button wrapper */
+.captureRow {
+  margin-top: 20px;
+}
+
+/* Retake */
+.retakeRow {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.retakeBtn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-ui);
+}
+
+.retakeBtn:hover {
+  color: var(--text-secondary);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .extractedText,
+  .reviewNoteInput {
+    font-size: 16px;
+  }
+}

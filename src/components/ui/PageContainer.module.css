@@ -1,0 +1,17 @@
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.container {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 16px;
+  }
+}

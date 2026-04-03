@@ -1,0 +1,274 @@
+/* ============================================
+   RAG Notebook — Design Tokens
+   Unified CSS custom properties extracted from
+   all 10 HTML prototypes
+   ============================================ */
+
+:root {
+  /* Base palette (light) */
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-alt: #f9f7f3;
+  --surface-hover: #f0efec;
+  --surface-warm: #f0ece4;
+  --border: #dddad3;
+  --border-subtle: #e8e4dc;
+  --border-focus: #b8b4ab;
+
+  /* Text hierarchy */
+  --text-primary: #2c2a26;
+  --text-secondary: #5c5850;
+  --text-muted: #9b9588;
+  --text-faint: #c4bfb4;
+  --text-ghost: #ddd9d0;
+
+  /* System accent */
+  --accent: #7c5cbf;
+  --accent-dim: rgba(124, 92, 191, 0.06);
+  --accent-glow: rgba(124, 92, 191, 0.12);
+
+  /* Success */
+  --success: #3a9a6e;
+  --success-dim: rgba(58, 154, 110, 0.06);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.07);
+
+  /* Radii */
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  /* Font stacks */
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-serif: 'Newsreader', serif;
+  --font-body: 'Lora', serif;
+
+  /* Timing */
+  --transition-theme: 350ms ease;
+  --transition-ui: 200ms ease;
+}
+
+/* ============================================
+   Dark Theme
+   ============================================ */
+[data-theme="dark"] {
+  --bg: #0e0f11;
+  --surface: #16171b;
+  --surface-alt: #1a1b1f;
+  --surface-hover: #1e1f24;
+  --surface-warm: #1a1b17;
+  --border: #2a2b31;
+  --border-subtle: #252622;
+  --border-focus: #4a4b55;
+
+  --text-primary: #d4d4d8;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --text-faint: #3a3a40;
+  --text-ghost: #2a2a30;
+
+  --accent: #a78bfa;
+  --accent-dim: rgba(167, 139, 250, 0.08);
+  --accent-glow: rgba(167, 139, 250, 0.15);
+
+  --success: #6ee7b7;
+  --success-dim: rgba(110, 231, 183, 0.08);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================
+   Mode-Specific Overrides
+   Applied via data-mode attribute on container
+   ============================================ */
+
+/* Thinking — warm, contemplative */
+[data-mode="thinking"] {
+  --bg: #f5f2ed;
+  --connection: #b08840;
+  --connection-dim: rgba(176, 136, 64, 0.08);
+  --scan-color: rgba(124, 92, 191, 0.15);
+}
+[data-theme="dark"] [data-mode="thinking"] {
+  --bg: #111210;
+  --surface: #1a1b19;
+  --surface-warm: #1e1f1c;
+  --border: #2e2f2b;
+  --border-focus: #4a4b45;
+  --text-primary: #d4d2cc;
+  --text-secondary: #a19e96;
+  --text-muted: #5c5a54;
+  --text-faint: #3a3935;
+  --connection: #d4a853;
+  --connection-dim: rgba(212, 168, 83, 0.1);
+  --scan-color: rgba(167, 139, 250, 0.12);
+}
+
+/* Dialogue — reflective writing */
+[data-mode="dialogue"] {
+  --bg: #faf9f6;
+  --surface-alt: #f5f3ef;
+  --surface-hover: #edeae4;
+  --border: #e2dfd8;
+  --border-subtle: #eceae5;
+  --border-focus: #c5c0b6;
+  --text-primary: #2a2824;
+  --text-secondary: #5a564e;
+  --text-muted: #958f83;
+  --resonance: #6a8a5a;
+  --resonance-dim: rgba(106, 138, 90, 0.06);
+  --resonance-border: rgba(106, 138, 90, 0.18);
+}
+[data-theme="dark"] [data-mode="dialogue"] {
+  --bg: #111210;
+  --surface: #191a18;
+  --surface-alt: #1e1f1c;
+  --surface-hover: #252622;
+  --border: #2e2f2b;
+  --border-subtle: #252622;
+  --border-focus: #4a4b45;
+  --text-primary: #d6d4ce;
+  --text-secondary: #a8a59c;
+  --text-muted: #6a665e;
+  --text-faint: #3e3d38;
+  --text-ghost: #2e2d29;
+  --resonance: #8ab878;
+  --resonance-dim: rgba(138, 184, 120, 0.07);
+  --resonance-border: rgba(138, 184, 120, 0.15);
+}
+
+/* Study — academic, textbook feel */
+[data-mode="study"] {
+  --bg: #f4f1eb;
+  --surface-warm: #f0ece4;
+  --surface-hover: #eae6dd;
+  --border: #ddd8ce;
+  --border-subtle: #e8e4dc;
+  --border-focus: #c0b9ac;
+  --text-primary: #2a2824;
+  --text-secondary: #5a564e;
+  --text-muted: #958f83;
+  --takeaway: #8b6b2e;
+  --takeaway-dim: rgba(139, 107, 46, 0.06);
+  --takeaway-border: rgba(139, 107, 46, 0.2);
+  --connection: #6a8a5a;
+  --connection-dim: rgba(106, 138, 90, 0.06);
+  --connection-border: rgba(106, 138, 90, 0.18);
+}
+[data-theme="dark"] [data-mode="study"] {
+  --bg: #111210;
+  --surface: #191a18;
+  --surface-alt: #1e1f1c;
+  --surface-warm: #1a1b17;
+  --surface-hover: #252622;
+  --border: #2e2f2b;
+  --border-subtle: #252622;
+  --border-focus: #4a4b45;
+  --text-primary: #d6d4ce;
+  --text-secondary: #a8a59c;
+  --text-muted: #6a665e;
+  --text-faint: #3e3d38;
+  --text-ghost: #2e2d29;
+  --takeaway: #d4a853;
+  --takeaway-dim: rgba(212, 168, 83, 0.07);
+  --takeaway-border: rgba(212, 168, 83, 0.2);
+  --connection: #8ab878;
+  --connection-dim: rgba(138, 184, 120, 0.07);
+  --connection-border: rgba(138, 184, 120, 0.15);
+}
+
+/* Conversation — import chat transcripts */
+[data-mode="conversation"] {
+  --human: #3d6b8e;
+  --human-bg: rgba(61, 107, 142, 0.04);
+  --human-border: rgba(61, 107, 142, 0.12);
+  --ai: #7c5cbf;
+  --ai-bg: rgba(124, 92, 191, 0.03);
+  --ai-border: rgba(124, 92, 191, 0.1);
+  --highlight: #c9952e;
+  --highlight-bg: rgba(201, 149, 46, 0.07);
+  --highlight-border: rgba(201, 149, 46, 0.25);
+}
+[data-theme="dark"] [data-mode="conversation"] {
+  --human: #6aa4cc;
+  --human-bg: rgba(106, 164, 204, 0.06);
+  --human-border: rgba(106, 164, 204, 0.15);
+  --ai: #a78bfa;
+  --ai-bg: rgba(167, 139, 250, 0.04);
+  --ai-border: rgba(167, 139, 250, 0.12);
+  --highlight: #d4a853;
+  --highlight-bg: rgba(212, 168, 83, 0.08);
+  --highlight-border: rgba(212, 168, 83, 0.25);
+}
+
+/* Search — retrieval, blue accent */
+[data-mode="search"] {
+  --mode-color: #3d6b8e;
+  --mode-dim: rgba(61, 107, 142, 0.05);
+  --mode-border: rgba(61, 107, 142, 0.15);
+}
+[data-theme="dark"] [data-mode="search"] {
+  --mode-color: #6aa4cc;
+  --mode-dim: rgba(106, 164, 204, 0.06);
+  --mode-border: rgba(106, 164, 204, 0.15);
+}
+
+/* Chat — conversational retrieval */
+[data-mode="chat"] {
+  --mode-color: #3d6b8e;
+  --mode-dim: rgba(61, 107, 142, 0.04);
+  --mode-border: rgba(61, 107, 142, 0.12);
+  --human-bg: rgba(61, 107, 142, 0.04);
+  --ai-bg: transparent;
+  --source: #8b6b2e;
+  --source-dim: rgba(139, 107, 46, 0.05);
+  --source-border: rgba(139, 107, 46, 0.18);
+}
+[data-theme="dark"] [data-mode="chat"] {
+  --mode-color: #6aa4cc;
+  --mode-dim: rgba(106, 164, 204, 0.05);
+  --mode-border: rgba(106, 164, 204, 0.15);
+  --human-bg: rgba(106, 164, 204, 0.05);
+  --ai-bg: transparent;
+  --source: #d4a853;
+  --source-dim: rgba(212, 168, 83, 0.06);
+  --source-border: rgba(212, 168, 83, 0.18);
+}
+
+/* Projects — collection, green accent */
+[data-mode="projects"] {
+  --mode-color: #2e7d5b;
+  --mode-dim: rgba(46, 125, 91, 0.05);
+  --mode-border: rgba(46, 125, 91, 0.18);
+}
+[data-theme="dark"] [data-mode="projects"] {
+  --mode-color: #5cc98a;
+  --mode-dim: rgba(92, 201, 138, 0.06);
+  --mode-border: rgba(92, 201, 138, 0.18);
+}
+
+/* Compose — writing, warm brown */
+[data-mode="compose"] {
+  --mode-color: #8b4513;
+  --mode-dim: rgba(139, 69, 19, 0.04);
+  --mode-border: rgba(139, 69, 19, 0.15);
+  --quote-bg: #fdfcfa;
+  --quote-border: #e8e4db;
+  --question: #3d6b8e;
+  --question-dim: rgba(61, 107, 142, 0.04);
+  --question-border: rgba(61, 107, 142, 0.15);
+}
+[data-theme="dark"] [data-mode="compose"] {
+  --mode-color: #d4955a;
+  --mode-dim: rgba(212, 149, 90, 0.06);
+  --mode-border: rgba(212, 149, 90, 0.18);
+  --quote-bg: #1a1b18;
+  --quote-border: #2e2f2b;
+  --question: #6aa4cc;
+  --question-dim: rgba(106, 164, 204, 0.05);
+  --question-border: rgba(106, 164, 204, 0.15);
+}

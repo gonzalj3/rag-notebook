@@ -1,0 +1,413 @@
+/* Topic input */
+.topicSection {
+  margin-bottom: 28px;
+}
+
+.topicLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.topicInput {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-shadow: var(--shadow-sm);
+}
+
+.topicInput::placeholder {
+  color: var(--text-ghost);
+  font-weight: 300;
+  font-style: italic;
+}
+
+.topicInput:focus {
+  border-color: var(--mode-color);
+  box-shadow: 0 0 0 3px var(--mode-dim), var(--shadow-sm);
+}
+
+.topicHint {
+  font-size: 0.58rem;
+  color: var(--text-faint);
+  margin-top: 8px;
+  padding: 0 4px;
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+/* Fetch button */
+.fetchBtn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.fetchBtn:hover {
+  border-color: var(--mode-color);
+  color: var(--mode-color);
+  background: var(--mode-dim);
+}
+
+.fetchBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Quotes section */
+.quotesSection {
+  margin-top: 8px;
+}
+
+.quotesHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.quotesTitle {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mode-color);
+  font-weight: 500;
+}
+
+/* Quote card */
+.quoteCard {
+  background: var(--quote-bg);
+  border: 1px solid var(--quote-border);
+  border-left: 3px solid var(--mode-border);
+  border-radius: 2px var(--radius) var(--radius) 2px;
+  padding: 16px 18px 14px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: opacity 0.3s, transform 0.3s;
+  animation: quoteIn 0.4s ease-out both;
+}
+
+@keyframes quoteIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quoteCardRemoving {
+  opacity: 0;
+  transform: translateX(-20px);
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: all 0.35s;
+}
+
+.quoteText {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.quoteText::before {
+  content: '\201C';
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--mode-color);
+  opacity: 0.3;
+  margin-right: 2px;
+  line-height: 0;
+  vertical-align: -0.25em;
+}
+
+.quoteText::after {
+  content: '\201D';
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--mode-color);
+  opacity: 0.3;
+  margin-left: 2px;
+  line-height: 0;
+  vertical-align: -0.25em;
+}
+
+.quoteSource {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quoteSourceType {
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+}
+
+.quoteSourceName {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.quoteSourceDate {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-faint);
+}
+
+.quoteRemove {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color 0.2s, opacity 0.2s;
+  opacity: 0;
+  border-radius: 4px;
+}
+
+.quoteCard:hover .quoteRemove {
+  opacity: 1;
+}
+
+.quoteRemove:hover {
+  color: var(--text-muted);
+  background: var(--surface-hover);
+}
+
+/* Section divider */
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 32px 0 24px;
+}
+
+.sectionDivider::before,
+.sectionDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.sectionDividerLabel {
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Questions section */
+.questionsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.questionsTitle {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--question);
+  font-weight: 500;
+}
+
+.regenerateBtn {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.05em;
+  color: var(--question);
+  background: var(--question-dim);
+  border: 1px solid var(--question-border);
+  border-radius: 16px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.regenerateBtn:hover {
+  background: var(--surface-hover);
+  border-color: var(--question);
+}
+
+/* Question card */
+.questionCard {
+  background: var(--question-dim);
+  border: 1px solid var(--question-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  position: relative;
+  transition: opacity 0.3s, transform 0.3s;
+  animation: quoteIn 0.4s ease-out both;
+}
+
+.questionCardRemoving {
+  opacity: 0;
+  transform: translateX(-20px);
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: all 0.35s;
+}
+
+.questionNumber {
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  color: var(--question);
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.questionText {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-primary);
+}
+
+.questionContext {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.questionRemove {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color 0.2s, opacity 0.2s;
+  opacity: 0;
+  border-radius: 4px;
+}
+
+.questionCard:hover .questionRemove {
+  opacity: 1;
+}
+
+.questionRemove:hover {
+  color: var(--text-muted);
+  background: var(--surface-hover);
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  justify-content: center;
+}
+
+.loadingSpinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--mode-color);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.emptyIcon {
+  font-size: 1.8rem;
+  opacity: 0.15;
+  margin-bottom: 10px;
+}
+
+.emptyText {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-faint);
+  line-height: 1.6;
+}
+
+/* Quote count in header */
+.quoteCount {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 480px) {
+  .topicInput {
+    font-size: 16px;
+  }
+}

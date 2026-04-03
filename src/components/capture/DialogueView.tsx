@@ -1,0 +1,497 @@
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { PageContainer } from '@/components/ui/PageContainer'
+import { TagRow } from '@/components/ui/TagRow'
+import { useAutoTags } from '@/hooks/useAutoTags'
+import { useAutoSave } from '@/hooks/useAutoSave'
+import { useSessionTimer } from '@/hooks/useSessionTimer'
+import { useAutoResize } from '@/hooks/useAutoResize'
+// Resonance data sourced from local corpus items matching mockData patterns
+// import { mockSearchResults } from '@/lib/mockData'
+import styles from './DialogueView.module.css'
+
+/* ============================================
+   Types
+   ============================================ */
+
+interface PastSession {
+  id: string
+  text: string
+  date: string
+  duration: string
+  wordCount: number
+}
+
+interface ResonanceItem {
+  id: string
+  type: string
+  source?: string
+  age: string
+  text: string
+  tags: string
+}
+
+/* ============================================
+   Mock corpus for resonance matching
+   ============================================ */
+
+const corpusItems = [
+  {
+    triggers: ['chunk', 'split', 'recursive', '512', 'semantic', 'fragment'],
+    type: 'handwritten note',
+    age: '5 days ago',
+    tags: 'rag',
+    text: "Recursive splitting at 512 tokens \u2014 the simplest approach wins. Not because it's theoretically optimal but because semantic chunking creates too many tiny fragments.",
+  },
+  {
+    triggers: ['eval', 'metric', 'measure', 'error', 'iterate', 'improve', 'quality'],
+    type: 'article',
+    source: 'hamel.dev',
+    age: '1 week ago',
+    tags: 'evals',
+    text: 'Teams that succeed barely talk about tools. They obsess over measurement and iteration. Error analysis is the single most valuable activity in AI development.',
+  },
+  {
+    triggers: ['rag', 'fail', 'ingest', 'chunk', 'prompt', 'retrieval', 'pipeline'],
+    type: 'tweet capture',
+    age: '3 days ago',
+    tags: 'rag, infra',
+    text: '80% of RAG failures trace back to the ingestion and chunking layer, not the LLM. Most teams discover this after spending weeks tuning prompts.',
+  },
+  {
+    triggers: ['hamel', 'build', 'measure', 'eval', 'team', 'product', 'process'],
+    type: 'your note',
+    age: '4 days ago',
+    tags: 'evals, learning',
+    text: "Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see.",
+  },
+  {
+    triggers: ['embed', 'model', 'index', 'corpus', 'vector', 'migration', 'upgrade'],
+    type: 'article',
+    source: 'blog.premai.io',
+    age: '1 week ago',
+    tags: 'rag',
+    text: 'Your query must use the same embedding model as your indexed chunks. If you upgrade your embedding model, you must re-embed your entire corpus.',
+  },
+  {
+    triggers: ['ragas', 'faithfulness', 'relevancy', 'context', 'ground truth', 'reference'],
+    type: 'article',
+    source: 'arxiv.org',
+    age: '2 weeks ago',
+    tags: 'evals',
+    text: 'RAGAS provides reference-free evaluation \u2014 measuring faithfulness, answer relevancy, and context relevancy without ground truth annotations.',
+  },
+  {
+    triggers: ['bm25', 'vector', 'hybrid', 'keyword', 'semantic', 'search', 'complement'],
+    type: 'your note',
+    age: '2 days ago',
+    tags: 'rag',
+    text: "The fundamental insight is that BM25 and vector search fail in complementary ways. Exact terms need keyword match. Conceptual queries need semantic search. My notebook needs both.",
+  },
+]
+
+/* ============================================
+   Initial past sessions (from prototype)
+   ============================================ */
+
+const initialInlineSessions: { text: string; label: string }[] = [
+  {
+    text: "The FloTorch benchmark result keeps surprising me \u2014 recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise. The fragments semantic chunking produces are too small \u2014 averaging 43 tokens \u2014 and the LLM doesn't get enough context per chunk to reason well. Maybe the lesson is: don't optimize for retrieval precision at the expense of generation quality. The chunk needs to be useful to the reader (the LLM), not just findable by the retriever.",
+    label: 'Mar 31 \u00b7 6 min session \u00b7 276 words',
+  },
+  {
+    text: "Evals are the product development process, not a QA step. Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it \u2014 you define what \u201cgood\u201d looks like, measure where you are, and then engineer toward the gap. The eval system IS the development environment. Which means for my notebook, I should build the eval pipeline before I build the generation layer. Start with: can I retrieve the right chunks for a set of test queries? Measure that. Only then worry about what the LLM does with them.",
+    label: 'Apr 1 \u00b7 14 min session \u00b7 518 words',
+  },
+  {
+    text: 'The fundamental insight about hybrid retrieval is that BM25 and vector search fail in complementary ways. When I search for \u201cRAGAS faithfulness metric\u201d I need exact keyword match \u2014 dense retrieval might return chunks about evaluation generally but miss the specific framework. When I search for \u201chow to know if my retrieval is working\u201d I need semantic understanding \u2014 BM25 won\'t match because none of those keywords appear in the relevant documents. My notebook will have both types of queries. Technical terms I remember exactly, and fuzzy conceptual questions where I remember the idea but not the words.',
+    label: 'today \u00b7 new session',
+  },
+]
+
+const initialPreviousSessions: PastSession[] = [
+  {
+    id: 'ps-1',
+    text: 'Why hybrid retrieval is non-negotiable for my notebook. The fundamental insight is that BM25 and vector search fail in complementary ways. When I search for "RAGAS faithfulness metric" I need exact keyword match. When I search for "how to know if my retrieval is working" I need semantic understanding.',
+    date: '2 days ago',
+    duration: '8 min session',
+    wordCount: 342,
+  },
+  {
+    id: 'ps-2',
+    text: "Evals are the product development process, not a QA step. Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it.",
+    date: '4 days ago',
+    duration: '14 min session',
+    wordCount: 518,
+  },
+  {
+    id: 'ps-3',
+    text: 'Chunking: the decision that silently makes or breaks everything. The FloTorch benchmark result keeps surprising me \u2014 recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise.',
+    date: '1 week ago',
+    duration: '6 min session',
+    wordCount: 276,
+  },
+]
+
+/* ============================================
+   Helpers
+   ============================================ */
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter((w) => w.length > 0).length
+}
+
+function scoreCorpus(text: string): ResonanceItem[] {
+  const lower = text.toLowerCase()
+  const scored = corpusItems
+    .map((item, i) => {
+      let score = 0
+      item.triggers.forEach((t) => {
+        if (lower.includes(t)) score++
+      })
+      return { ...item, score, id: `res-${i}` }
+    })
+    .filter((item) => item.score > 0)
+
+  scored.sort((a, b) => b.score - a.score)
+  return scored.slice(0, 2)
+}
+
+/* ============================================
+   Component
+   ============================================ */
+
+export function DialogueView() {
+  // Editor state
+  const [text, setText] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [resonances, setResonances] = useState<ResonanceItem[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const [showHint, setShowHint] = useState(false)
+  const [expandedSession, setExpandedSession] = useState<string | null>(null)
+
+  // Past sessions
+  const [inlineSessions, setInlineSessions] = useState(initialInlineSessions)
+  const [previousSessions, setPreviousSessions] = useState(initialPreviousSessions)
+
+  // Refs for thresholds and timers
+  const wordThreshold = useRef(20)
+  const lastResonanceText = useRef('')
+  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const tagTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const resonanceTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const hintShown = useRef(false)
+  const hintTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const editorRef = useRef<HTMLTextAreaElement | null>(null)
+  const sessionStartRef = useRef(Date.now())
+
+  // Hooks
+  const { status: saveStatus, save } = useAutoSave(800)
+  const elapsed = useSessionTimer()
+  const { classify } = useAutoTags()
+  const { ref: autoResizeRef, resize } = useAutoResize()
+
+  // Combine refs
+  const setEditorRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      editorRef.current = node
+      autoResizeRef(node)
+    },
+    [autoResizeRef],
+  )
+
+  const words = countWords(text)
+
+  // Save status text
+  const saveText = saveStatus === 'saving' ? 'saving\u2026' : saveStatus === 'saved' ? 'saved' : ''
+
+  // Close session
+  const closeSession = useCallback(() => {
+    if (!text.trim() || closing) return
+
+    setClosing(true)
+
+    const sessionWords = countWords(text)
+    const elapsedMs = Date.now() - sessionStartRef.current
+    const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000))
+    const now = new Date()
+    const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    const label = `${dateStr} \u00b7 ${elapsedMin} min session \u00b7 ${sessionWords} words`
+
+    setTimeout(() => {
+      // Move to inline sessions
+      setInlineSessions((prev) => {
+        // Replace the last "today" divider with closed session + new divider
+        const withoutLast = prev.slice(0, -1)
+        return [
+          ...withoutLast,
+          { text: prev[prev.length - 1].text, label: prev[prev.length - 1].label },
+          { text: text.trim(), label },
+          { text: '', label: 'new session' },
+        ]
+      })
+
+      // Add to previous sessions list
+      setPreviousSessions((prev) => [
+        {
+          id: `ps-${Date.now()}`,
+          text: text.trim(),
+          date: 'just now',
+          duration: `${elapsedMin} min session`,
+          wordCount: sessionWords,
+        },
+        ...prev,
+      ])
+
+      // Reset editor
+      setText('')
+      setTags([])
+      setResonances([])
+      setClosing(false)
+      wordThreshold.current = 20
+      lastResonanceText.current = ''
+      hintShown.current = false
+      sessionStartRef.current = Date.now()
+
+      // Focus editor
+      setTimeout(() => {
+        editorRef.current?.focus()
+        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }, 500)
+  }, [text, closing])
+
+  // Handle text input
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newText = e.target.value
+      setText(newText)
+      resize()
+
+      const wordCount = countWords(newText)
+
+      // Writing indicator
+      setIsTyping(true)
+      clearTimeout(typingTimer.current)
+      typingTimer.current = setTimeout(() => setIsTyping(false), 1000)
+
+      // Autosave
+      if (newText.trim()) save()
+
+      // Auto-tags after 10 words with 2s pause
+      if (wordCount >= 10) {
+        clearTimeout(tagTimer.current)
+        tagTimer.current = setTimeout(() => {
+          const newTags = classify(newText)
+          if (newTags.length) setTags(newTags)
+        }, 2000)
+      }
+
+      // Resonance after threshold words with 1.5s pause
+      if (wordCount >= wordThreshold.current) {
+        clearTimeout(resonanceTimer.current)
+        resonanceTimer.current = setTimeout(() => {
+          const current = newText.trim()
+          if (current !== lastResonanceText.current && current.length > 50) {
+            lastResonanceText.current = current
+            const newResonances = scoreCorpus(current)
+
+            if (newResonances.length > 0) {
+              setResonances((prev) => {
+                const existingTexts = new Set(prev.map((r) => r.text))
+                const toAdd = newResonances.filter((r) => !existingTexts.has(r.text))
+                return toAdd.length > 0 ? [...prev, ...toAdd] : prev
+              })
+            }
+
+            wordThreshold.current = wordCount + 30
+          }
+        }, 1500)
+      }
+
+      // Show Cmd+. hint once after 10 words
+      if (wordCount >= 10 && !hintShown.current) {
+        hintShown.current = true
+        setShowHint(true)
+        clearTimeout(hintTimer.current)
+        hintTimer.current = setTimeout(() => setShowHint(false), 4000)
+      }
+    },
+    [save, classify, resize],
+  )
+
+  // Dismiss resonance
+  const dismissResonance = useCallback((id: string) => {
+    setResonances((prev) => prev.filter((r) => r.id !== id))
+  }, [])
+
+  // Tag handlers
+  const handleDismissTag = useCallback((tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag))
+  }, [])
+
+  const handleAddTag = useCallback((tag: string) => {
+    setTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]))
+  }, [])
+
+  // Keyboard shortcut: Cmd+.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '.') {
+        e.preventDefault()
+        closeSession()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [closeSession])
+
+  // Focus on mount
+  useEffect(() => {
+    editorRef.current?.focus()
+  }, [])
+
+  // Clean up timers
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimer.current)
+      clearTimeout(tagTimer.current)
+      clearTimeout(resonanceTimer.current)
+      clearTimeout(hintTimer.current)
+    }
+  }, [])
+
+  const showCloseBtn = words >= 3
+  const showMeta = tags.length > 0
+  const showResonance = resonances.length > 0
+
+  // Derive title from first sentence for previous sessions list
+  const getTitle = (fullText: string) => {
+    const first = fullText.split(/[.!?]/)[0]
+    return first.length > 72 ? first.substring(0, 72) + '\u2026' : first
+  }
+
+  return (
+    <PageContainer mode="dialogue" maxWidth={680}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <h1 className={styles.title}>
+            capture <span className={styles.titleAccent}>&middot;</span> dialogue
+          </h1>
+          <div className={styles.saveStatus} data-status={saveStatus}>
+            <span className={styles.saveDot} />
+            <span>{saveText}</span>
+          </div>
+        </div>
+        <div className={styles.headerRight}>
+          {words > 0 && <span className={styles.wordCount}>{words} words</span>}
+          <span className={styles.sessionTime}>{elapsed}</span>
+        </div>
+      </div>
+
+      {/* Past sessions (inline, read-only) */}
+      <div className={styles.pastSessions}>
+        {inlineSessions.map((session, i) => (
+          <div key={i}>
+            {session.text && (
+              <div className={styles.pastSessionText}>{session.text}</div>
+            )}
+            <div className={styles.sessionDivider}>
+              <span className={styles.sessionDividerLabel}>{session.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Writing surface */}
+      <div className={styles.writingSurface}>
+        <textarea
+          ref={setEditorRef}
+          className={styles.editor}
+          placeholder="start writing... let your thoughts flow"
+          value={text}
+          onChange={handleInput}
+        />
+        <div className={styles.writingIndicator} data-active={isTyping} />
+      </div>
+
+      {/* Close session button */}
+      <button
+        className={styles.closeSession}
+        data-visible={showCloseBtn}
+        data-closing={closing}
+        onClick={closeSession}
+      >
+        {closing ? 'closing\u2026' : 'close session'}
+      </button>
+
+      {/* Resonance panel */}
+      <div className={styles.resonancePanel} data-visible={showResonance}>
+        <div className={styles.resonanceHeader}>
+          <span className={styles.resonanceIcon}>{'\u25CC'}</span>
+          <span className={styles.resonanceTitle}>Resonances from your corpus</span>
+          <span className={styles.resonanceSubtitle}>surfaced while you write</span>
+        </div>
+        {resonances.map((item) => (
+          <div key={item.id} className={styles.resonanceItem}>
+            <div className={styles.resonanceItemTop}>
+              <div className={styles.resonanceItemType}>
+                <span className={styles.typeBadge}>{item.type}</span>
+                {item.age}
+                {item.source && ` \u00b7 ${item.source}`}
+              </div>
+              <button
+                className={styles.resonanceDismiss}
+                onClick={() => dismissResonance(item.id)}
+              >
+                dismiss
+              </button>
+            </div>
+            <div className={styles.resonanceItemText}>{item.text}</div>
+            <div className={styles.resonanceItemSource}>tagged: {item.tags}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Auto-tags */}
+      <div className={styles.noteMeta} data-visible={showMeta}>
+        <span className={styles.tagLabel}>tags</span>
+        <TagRow tags={tags} onDismiss={handleDismissTag} onAdd={handleAddTag} />
+      </div>
+
+      {/* Previous writing sessions */}
+      <div className={styles.previousNotes}>
+        <div className={styles.previousHeader}>Recent writing sessions</div>
+        {previousSessions.map((session) => (
+          <div
+            key={session.id}
+            className={styles.previousItem}
+            onClick={() =>
+              setExpandedSession(expandedSession === session.id ? null : session.id)
+            }
+          >
+            <div className={styles.previousItemTitle}>{getTitle(session.text)}</div>
+            <div className={styles.previousItemMeta}>
+              <span>
+                {session.wordCount} words &middot; {session.duration}
+              </span>
+              <span>{session.date}</span>
+            </div>
+            {expandedSession === session.id ? (
+              <div className={styles.previousItemExpanded}>{session.text}</div>
+            ) : (
+              <div className={styles.previousItemExcerpt}>{session.text}</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Keyboard hint */}
+      <div className={styles.closeHint} data-visible={showHint}>
+        <kbd className={styles.kbd}>{'\u2318'}</kbd>
+        <kbd className={styles.kbd}>.</kbd> to close session
+      </div>
+    </PageContainer>
+  )
+}

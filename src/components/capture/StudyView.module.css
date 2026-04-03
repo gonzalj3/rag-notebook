@@ -1,0 +1,572 @@
+/* ======================== */
+/* Source Selector           */
+/* ======================== */
+.sourceSection {
+  margin-bottom: 24px;
+}
+
+.sourceLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.sourceChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.sourceChip {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.sourceChip:hover {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+}
+
+.sourceChipActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.sourceInput {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-weight: 400;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sourceInput::placeholder {
+  color: var(--text-ghost);
+  font-style: italic;
+}
+
+.sourceInput:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* ======================== */
+/* Viewfinder / File Drop    */
+/* ======================== */
+.viewfinder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.viewfinder:hover {
+  transform: scale(1.003);
+}
+
+.viewfinderDragOver {
+  border-color: var(--accent);
+}
+
+.viewfinderInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: var(--accent);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+}
+
+.viewfinder:hover .corner {
+  opacity: 0.6;
+}
+
+.cornerTl {
+  top: 18px;
+  left: 18px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  border-radius: 3px 0 0 0;
+}
+
+.cornerTr {
+  top: 18px;
+  right: 18px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+  border-radius: 0 3px 0 0;
+}
+
+.cornerBl {
+  bottom: 18px;
+  left: 18px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+  border-radius: 0 0 0 3px;
+}
+
+.cornerBr {
+  bottom: 18px;
+  right: 18px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+  border-radius: 0 0 3px 0;
+}
+
+.viewfinderIcon {
+  font-size: 2.2rem;
+  opacity: 0.2;
+}
+
+.viewfinderText {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.viewfinderHint {
+  font-size: 0.58rem;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fileInput {
+  display: none;
+}
+
+/* ======================== */
+/* Thumbnail Strip           */
+/* ======================== */
+.thumbStrip {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+}
+
+.thumbStrip::-webkit-scrollbar {
+  display: none;
+}
+
+.thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  animation: thumbIn 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.thumb:hover {
+  border-color: var(--border-focus);
+}
+
+.thumbActive {
+  border-color: var(--accent);
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbNumber {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 0.45rem;
+  font-weight: 500;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.thumbRemove {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 0.5rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.thumb:hover .thumbRemove {
+  display: flex;
+}
+
+@keyframes thumbIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.captureCount {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 10px;
+  letter-spacing: 0.03em;
+}
+
+/* ======================== */
+/* Review Card               */
+/* ======================== */
+.reviewCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 16px;
+}
+
+/* Page Nav */
+.pageNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.pageNavBtn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageNavBtn:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+}
+
+.pageNavBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.pageIndicator {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* Review Photo */
+.reviewPhoto {
+  position: relative;
+  width: 100%;
+  max-height: 220px;
+  overflow: hidden;
+  background: var(--surface-warm);
+}
+
+.reviewPhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: white;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+/* Extracted Text */
+.reviewTextSection {
+  padding: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.reviewLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+}
+
+.extractedText {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.7;
+  outline: none;
+  resize: none;
+  min-height: 50px;
+  transition: color 0.35s ease;
+}
+
+/* ======================== */
+/* Takeaway Section          */
+/* ======================== */
+.takeawaySection {
+  margin-top: 20px;
+  padding: 18px;
+  background: var(--takeaway-dim);
+  border: 1px solid var(--takeaway-border);
+  border-radius: var(--radius);
+  transition: background 0.35s ease;
+}
+
+.takeawayLabel {
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--takeaway);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.takeawayPrompt {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.takeawayInput {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  padding: 12px 14px;
+  outline: none;
+  resize: none;
+  line-height: 1.7;
+  min-height: 60px;
+  max-height: 160px;
+  transition: border-color 0.25s ease;
+}
+
+.takeawayInput:focus {
+  border-color: var(--takeaway-border);
+}
+
+.takeawayInput::placeholder {
+  color: var(--text-ghost);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.takeawayHint {
+  font-size: 0.52rem;
+  color: var(--text-faint);
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+/* ======================== */
+/* Connection Section        */
+/* ======================== */
+.connectionSection {
+  margin-top: 16px;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.6s ease, max-height 0.6s ease;
+}
+
+.connectionVisible {
+  opacity: 1;
+  max-height: 300px;
+}
+
+.connectionItem {
+  padding: 14px 16px;
+  background: var(--connection-dim);
+  border: 1px solid var(--connection-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.connectionLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--connection);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.connectionText {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.connectionSource {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  margin-top: 6px;
+  letter-spacing: 0.03em;
+}
+
+/* ======================== */
+/* Review Button             */
+/* ======================== */
+.reviewBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.reviewBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ======================== */
+/* Tags                      */
+/* ======================== */
+.tagSection {
+  margin-top: 16px;
+}
+
+/* ======================== */
+/* Back button               */
+/* ======================== */
+.backBtn {
+  display: block;
+  margin: 12px auto 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.backBtn:hover {
+  color: var(--text-muted);
+}
+
+/* ======================== */
+/* Responsive                */
+/* ======================== */
+@media (max-width: 480px) {
+  .sourceInput,
+  .takeawayInput,
+  .extractedText {
+    font-size: 16px;
+  }
+}

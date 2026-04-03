@@ -1,0 +1,379 @@
+/* Capture Card */
+.captureCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background var(--transition-theme);
+}
+.captureCard:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim), var(--shadow-md);
+}
+
+.primaryInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 300;
+  padding: 16px 18px;
+  outline: none;
+  resize: none;
+  line-height: 1.6;
+  min-height: 52px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.primaryInput::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* Attach bar */
+.attachBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+  height: 36px;
+  border-top: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.captureCard:focus-within .attachBar,
+.hasContent {
+  border-top-color: var(--border);
+}
+
+.attachBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+.attachBtn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border);
+  background: var(--surface-hover);
+}
+.attachBtn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.icon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.attachSpacer {
+  flex: 1;
+}
+.charCount {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+/* Secondary fields */
+.secondaryField {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+  opacity: 0;
+}
+.open {
+  max-height: 120px;
+  opacity: 1;
+}
+
+.fieldLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 18px 0 18px;
+  background: var(--surface-hover);
+  border-top: 1px solid var(--border);
+  transition: background var(--transition-theme);
+}
+
+.secondaryInput {
+  width: 100%;
+  background: var(--surface-hover);
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 300;
+  padding: 10px 18px;
+  outline: none;
+  resize: none;
+  line-height: 1.5;
+  height: 40px;
+  transition: background var(--transition-theme);
+}
+.secondaryInput::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+}
+.secondaryTextarea {
+  min-height: 40px;
+  max-height: 80px;
+  overflow-y: auto;
+  height: auto;
+}
+
+/* Hint */
+.captureHint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.hintText {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  margin: 0 2px;
+}
+.urlHint {
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+/* Tags */
+.tagRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+  padding: 0 2px;
+  min-height: 24px;
+}
+.tagLabel {
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+.tagPlaceholder {
+  font-size: 0.6rem;
+  font-style: italic;
+  font-family: var(--font-serif);
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.tag {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  animation: tag-appear 0.35s ease-out both;
+}
+.tag:hover {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+}
+.auto {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.auto:hover {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+  text-decoration: line-through;
+}
+.dismissed {
+  opacity: 0.3;
+  text-decoration: line-through;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+.tagAdd {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: tag-appear 0.35s ease-out both;
+}
+.tagAdd:hover {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+  border-style: solid;
+}
+
+/* Capture button */
+.captureBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+.idle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.idle:active {
+  transform: scale(0.99);
+}
+.capturing {
+  border-color: var(--accent);
+  color: var(--accent);
+  pointer-events: none;
+}
+.captured {
+  border-color: var(--success);
+  color: var(--success);
+  background: var(--success-dim);
+  pointer-events: none;
+}
+
+/* Recent captures */
+.recent {
+  margin-top: 44px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.recentHeader {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.recentItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  animation: fade-in 0.4s ease-out;
+}
+:global([data-theme="dark"]) .recentItem {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.recentType {
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: 3px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.bundle { color: var(--accent); }
+.url { color: #8b7ec8; }
+.paste { color: #c47a9a; }
+.note { color: #6a9fc4; }
+:global([data-theme="dark"]) .url { color: #a78bfa; }
+:global([data-theme="dark"]) .paste { color: #f9a8d4; }
+:global([data-theme="dark"]) .note { color: #93c5fd; }
+
+.recentContent {
+  flex: 1;
+  min-width: 0;
+}
+.recentTitle {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.recentMeta {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.recentParts {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+.recentPart {
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.recentStatus {
+  font-size: 0.55rem;
+  color: var(--success);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.processing {
+  color: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}

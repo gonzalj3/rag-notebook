@@ -1,0 +1,500 @@
+/* ============================================
+   Dialogue Capture View
+   Clean writing surface with resonance surfacing
+   ============================================ */
+
+/* Header — minimal, stays out of the way */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.titleAccent {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.saveStatus {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.saveDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: background 0.3s ease;
+}
+
+.saveStatus[data-status="saving"] .saveDot {
+  background: var(--accent);
+  animation: pulseDot 1s ease-in-out infinite;
+}
+
+.saveStatus[data-status="saved"] {
+  color: var(--success);
+}
+
+.saveStatus[data-status="saved"] .saveDot {
+  background: var(--success);
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wordCount {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.sessionTime {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+/* ======================== */
+/* Past Sessions (inline)   */
+/* ======================== */
+.pastSessions {
+  margin-top: 16px;
+}
+
+.pastSessionText {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.85;
+  color: var(--text-muted);
+  padding: 0 4px;
+  transition: color 0.35s ease;
+}
+
+.pastSessionText:hover {
+  color: var(--text-secondary);
+}
+
+.sessionDivider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 36px 0 32px 0;
+  padding: 0 4px;
+}
+
+.sessionDivider::before,
+.sessionDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.sessionDividerLabel {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+/* ======================== */
+/* Writing Surface          */
+/* ======================== */
+.writingSurface {
+  margin-top: 24px;
+  min-height: 45vh;
+  position: relative;
+}
+
+.editor {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.85;
+  padding: 0 4px;
+  outline: none;
+  resize: none;
+  min-height: 45vh;
+  overflow: hidden;
+  transition: color 0.35s ease;
+}
+
+.editor::placeholder {
+  color: var(--text-ghost);
+  font-style: italic;
+}
+
+/* Typing indicator line */
+.writingIndicator {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  margin-top: 16px;
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  transform-origin: left;
+}
+
+.writingIndicator[data-active="true"] {
+  opacity: 0.3;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scaleX(0.3);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.3;
+  }
+}
+
+/* ======================== */
+/* Close Session Button     */
+/* ======================== */
+.closeSession {
+  display: block;
+  margin: 20px auto 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.closeSession[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.closeSession:hover {
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--surface-alt);
+}
+
+.closeSession[data-closing="true"] {
+  color: var(--success);
+  border-color: var(--success);
+  background: var(--success-dim);
+  pointer-events: none;
+}
+
+.closeHint {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.closeHint[data-visible="true"] {
+  opacity: 1;
+}
+
+.kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  margin: 0 1px;
+}
+
+/* ======================== */
+/* Resonance Panel          */
+/* ======================== */
+.resonancePanel {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.resonancePanel[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.resonanceHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.resonanceIcon {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.resonanceTitle {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--resonance);
+  font-weight: 500;
+}
+
+.resonanceSubtitle {
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  letter-spacing: 0.03em;
+  margin-left: auto;
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+.resonanceItem {
+  padding: 14px 16px;
+  background: var(--resonance-dim);
+  border: 1px solid var(--resonance-border);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: default;
+  transition: background 0.2s ease;
+  animation: resAppear 0.5s ease-out both;
+}
+
+.resonanceItem:hover {
+  background: var(--surface-hover);
+}
+
+@keyframes resAppear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.resonanceItemTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.resonanceItemType {
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.typeBadge {
+  font-size: 0.45rem;
+  padding: 1px 5px;
+  background: var(--surface);
+  border-radius: 3px;
+  color: var(--text-faint);
+}
+
+.resonanceItemText {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.resonanceItemSource {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  margin-top: 8px;
+  letter-spacing: 0.03em;
+}
+
+.resonanceDismiss {
+  font-size: 0.5rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  letter-spacing: 0.04em;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.resonanceDismiss:hover {
+  color: var(--text-muted);
+}
+
+/* ======================== */
+/* Tags & Meta              */
+/* ======================== */
+.noteMeta {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.noteMeta[data-visible="true"] {
+  opacity: 1;
+}
+
+.tagLabel {
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-right: 8px;
+}
+
+/* ======================== */
+/* Previous Sessions List   */
+/* ======================== */
+.previousNotes {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.previousHeader {
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 16px;
+}
+
+.previousItem {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.previousItem:hover {
+  opacity: 0.7;
+}
+
+.previousItemTitle {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.previousItemMeta {
+  font-size: 0.55rem;
+  color: var(--text-faint);
+  letter-spacing: 0.03em;
+  display: flex;
+  gap: 10px;
+}
+
+.previousItemExcerpt {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ======================== */
+/* Expanded session         */
+/* ======================== */
+.previousItemExpanded {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-top: 8px;
+  padding: 12px 0;
+}
+
+@media (max-width: 480px) {
+  .editor {
+    font-size: 16px;
+  }
+}

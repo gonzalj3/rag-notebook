@@ -2,15 +2,35 @@
 
 ## Overview
 
-Three deliverables: a web client (React/Next.js), a FastAPI server with PostgreSQL + pgvector, and an iOS app (SwiftUI). This plan focuses on the web client first, with server and iOS outlined for future sessions.
+Three deliverables: a web client (Vite + React), a FastAPI server with PostgreSQL + pgvector, and an iOS app (SwiftUI). This plan focuses on the web client first, with server and iOS outlined for future sessions.
 
 ---
 
 ## Phase 1: Web Client (Current Focus)
 
+### Status: Steps 1-6 Complete ✓
+
+All foundational work is done. The web client is fully scaffolded with all 10 views converted from prototypes to React components, design system extracted, routing wired, state management in place, and mock data powering all interactions. The app runs on localhost with working navigation between all views.
+
+**What's built:**
+- Vite + React 19 + TypeScript project scaffold
+- Unified design token system (`tokens.css`) with light/dark themes and per-mode color overrides
+- TanStack Router with 12 routes (index + 6 capture + 4 retrieve + root layout)
+- Zustand stores (theme with localStorage persistence, capture queue, LLM status)
+- 8 shared UI components (ThemeToggle, Navigation, PageContainer, ModeHeader, TagRow, CaptureButton, RippleContainer, FetchIndicator)
+- 4 custom hooks (useAutoResize, useAutoTags, useAutoSave, useSessionTimer)
+- Typed API client with mock data for all endpoints
+- All 10 view conversions matching HTML prototypes
+- Landing page dashboard with mode cards
+
+**What's next:**
+- Step 7: WebLLM integration (on-device LLM for Chat and Compose views)
+- Step 8: PWA support (service worker, offline access, add to home screen)
+- Connect to real FastAPI server when Phase 2 is built
+
 ### Starting Point
 
-Ten HTML prototypes exist in the project root. These are single-file static prototypes with all CSS and JS inline. They represent the complete UI design for both ingestion and retrieval:
+Ten HTML prototypes exist in `/prototypes/` (moved from project root). These are single-file static prototypes with all CSS and JS inline. They represent the complete UI design for both ingestion and retrieval:
 
 **Ingestion views:**
 - `rag-notes-browsing-capture.html` — unified paste/URL/note capture with auto-tags
@@ -26,57 +46,72 @@ Ten HTML prototypes exist in the project root. These are single-file static prot
 - `rag-notebook-retrieve-projects.html` — project workspaces for aggregating materials
 - `rag-notebook-retrieve-compose.html` — research board with exact quotes and writing prompts
 
-### Step 1: Project Scaffold
+### Step 1: Project Scaffold ✓
 
-Set up a Next.js 14+ project with TypeScript, App Router, and Tailwind CSS.
+Set up a Vite + React project with TypeScript, TanStack Router, and CSS Modules.
 
 ```
 rag-notebook/
-├── app/
-│   ├── layout.tsx              # root layout, theme provider, fonts
-│   ├── page.tsx                # landing / dashboard
-│   ├── capture/
-│   │   ├── browsing/page.tsx
-│   │   ├── thinking/page.tsx
-│   │   ├── curation/page.tsx
-│   │   ├── dialogue/page.tsx
-│   │   ├── study/page.tsx
-│   │   └── conversation/page.tsx
-│   └── retrieve/
-│       ├── search/page.tsx
-│       ├── chat/page.tsx
-│       ├── projects/page.tsx
-│       └── compose/page.tsx
-├── components/
-│   ├── ui/                     # shared primitives (buttons, inputs, cards)
-│   ├── capture/                # ingestion-specific components
-│   ├── retrieve/               # retrieval-specific components
-│   ├── ThemeToggle.tsx
-│   └── Navigation.tsx
-├── lib/
-│   ├── api.ts                  # server API client (fetch wrappers for /ingest, /query, etc.)
-│   ├── llm.ts                  # WebLLM integration
-│   ├── theme.ts                # light/dark theme system
-│   └── types.ts                # shared TypeScript types
-├── hooks/
-│   ├── useAutoSave.ts
-│   ├── useAutoTags.ts
-│   └── useWebLLM.ts
+├── src/
+│   ├── main.tsx                # entry point, router mount
+│   ├── App.tsx                 # root layout, theme provider
+│   ├── routes/
+│   │   ├── __root.tsx          # TanStack root route (layout, nav, theme toggle)
+│   │   ├── index.tsx           # landing / dashboard
+│   │   ├── capture/
+│   │   │   ├── browsing.tsx
+│   │   │   ├── thinking.tsx
+│   │   │   ├── curation.tsx
+│   │   │   ├── dialogue.tsx
+│   │   │   ├── study.tsx
+│   │   │   └── conversation.tsx
+│   │   └── retrieve/
+│   │       ├── search.tsx
+│   │       ├── chat.tsx
+│   │       ├── projects.tsx
+│   │       └── compose.tsx
+│   ├── components/
+│   │   ├── ui/                 # shared primitives (buttons, inputs, cards)
+│   │   ├── capture/            # ingestion-specific components
+│   │   ├── retrieve/           # retrieval-specific components
+│   │   ├── ThemeToggle.tsx
+│   │   └── Navigation.tsx
+│   ├── lib/
+│   │   ├── api.ts              # server API client (typed fetch wrappers for /ingest, /query, etc.)
+│   │   ├── llm.ts              # WebLLM integration
+│   │   └── types.ts            # shared TypeScript types
+│   ├── hooks/
+│   │   ├── useAutoSave.ts
+│   │   ├── useAutoTags.ts
+│   │   └── useWebLLM.ts
+│   ├── stores/
+│   │   ├── theme.ts            # Zustand store: light/dark theme
+│   │   ├── capture.ts          # Zustand store: recent captures, processing queue
+│   │   └── llm.ts              # Zustand store: model loading status, active model
+│   ├── styles/
+│   │   ├── tokens.css          # CSS custom properties (design tokens extracted from prototypes)
+│   │   ├── global.css          # base styles, font-face, transitions
+│   │   └── modules/            # per-component CSS Modules
+│   └── assets/
 ├── prototypes/                 # move HTML files here for reference
 ├── public/
-├── tailwind.config.ts
-├── next.config.ts
-├── package.json
-└── tsconfig.json
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+└── package.json
 ```
 
 **Key decisions:**
-- Tailwind CSS with CSS custom properties for the theme system (the prototypes use CSS variables extensively — preserve that pattern)
-- Fonts: IBM Plex Mono (UI), Newsreader (headers), Lora (body text in dialogue/study modes) — loaded via `next/font/google`
+- **Vite** as build tool. No server rendering needed, app is client-side with a separate FastAPI backend
+- **TanStack Router** for type-safe routing. Cross-view actions (Search → Chat with document context) get typed route params and search params out of the box
+- **CSS Modules + CSS custom properties** for styling. The prototypes already define the design system in vanilla CSS with per-mode color palettes. Preserving this directly avoids a Tailwind translation layer
+- **Zustand** for cross-view state (theme, model status, capture queue, active project). ~1KB, no provider nesting
+- **Plain fetch** with a typed wrapper for API calls. No HTTP library dependency for 5-6 FastAPI endpoints
+- Fonts: IBM Plex Mono (UI), Newsreader (headers), Lora (body text in dialogue/study modes) — self-hosted via Fontsource packages
 - Theme: light default, dark toggle. Respect system preference, persist to localStorage
 - No component library. The prototypes have a specific aesthetic — warm off-whites, muted borders, serif accents — that won't come from a library
 
-### Step 2: Design System Extraction
+### Step 2: Design System Extraction ✓
 
 Extract the shared design tokens and patterns from the HTML prototypes into a unified system:
 
@@ -112,9 +147,9 @@ Dark:
 - Transitions: 350ms ease on theme changes, 200ms on interactions
 - Auto-tag chips: pill-shaped, accent-colored, appear with stagger animation
 
-### Step 3: Convert Ingestion Views (in order of complexity)
+### Step 3: Convert Ingestion Views ✓
 
-Convert each prototype to a React component. The HTML files are the spec — match them visually.
+All six ingestion views converted from HTML prototypes to React components with CSS Modules.
 
 **3a. Browsing Capture** (`rag-notes-browsing-capture.html`)
 - Unified input (textarea) with URL auto-detection
@@ -163,7 +198,7 @@ Convert each prototype to a React component. The HTML files are the spec — mat
 - "What did this conversation clarify?" reflection field
 - Saved conversations list with platform, title, exchange count, highlights
 
-### Step 4: Convert Retrieval Views
+### Step 4: Convert Retrieval Views ✓
 
 **4a. Search** (`rag-notebook-retrieve-search.html`)
 - Search input with instant results
@@ -192,18 +227,18 @@ Convert each prototype to a React component. The HTML files are the spec — mat
 - Quote cards: exact text in quotation marks, source type badge, source name, date, dismiss button
 - Writing prompts section: LLM-generated questions with context, dismiss individual, "new questions" button
 
-### Step 5: Navigation and Layout
+### Step 5: Navigation and Layout ✓
 
-The prototypes are standalone pages. The web app needs navigation between all 10 views.
+Navigation bar with capture/retrieve groups, cross-view links with typed search params, and a landing page dashboard with mode cards.
 
 - Top-level nav: **Capture** and **Retrieve** (the two fundamental activities)
 - Capture sub-nav: icons/labels for the six modes (browsing, thinking, curation, dialogue, study, conversation)
 - Retrieve sub-nav: icons/labels for the four modes (search, chat, projects, compose)
-- Cross-view actions: "discuss" in Search opens Chat, "add to project" opens Projects, etc. These should use Next.js routing with query params to carry context
+- Cross-view actions: "discuss" in Search opens Chat, "add to project" opens Projects, etc. TanStack Router's typed search params carry context between views
 
-### Step 6: API Client Layer
+### Step 6: API Client Layer ✓
 
-Build the API client that will connect to the FastAPI server. Initially, use mock data that matches the prototype demo content so the UI is fully interactive before the server exists.
+Typed fetch wrappers with mock data for all endpoints. Ready to swap in real FastAPI calls when the server exists.
 
 ```typescript
 // lib/api.ts
@@ -245,7 +280,7 @@ Integrate WebLLM for on-device generation in the Chat retrieval view and the wri
 
 ### Step 8: PWA Support
 
-- Service worker for offline access to the UI
+- `vite-plugin-pwa` for service worker generation and offline access
 - Web app manifest for "add to home screen"
 - Cache strategy: network-first for API calls, cache-first for static assets
 

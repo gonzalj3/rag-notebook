@@ -87,7 +87,7 @@ Not a ghostwriter. A research board that pulls exact quotes from your corpus org
 ```
 CLIENT (browser + iPhone)              SERVER (local first, deploy later)
 ┌────────────────────────┐             ┌──────────────────────────┐
-│  Web: React/Next.js    │             │  FastAPI                 │
+│  Web: Vite + React     │             │  FastAPI                 │
 │  iOS: SwiftUI          │             │                          │
 │                        │  REST API   │  /ingest  — chunk, embed │
 │  On-device LLM         │◄──────────►│  /query   — hybrid search│
