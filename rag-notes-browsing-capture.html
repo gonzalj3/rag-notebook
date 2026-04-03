@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Browsing Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface-hover: #f0efec;
+    --border: #ddd9d1;
+    --border-focus: #b8b3a9;
+    --text-primary: #2c2a26;
+    --text-secondary: #5c5850;
+    --text-muted: #9b9588;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.07);
+    --accent-glow: rgba(124, 92, 191, 0.12);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.07);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 6px rgba(0,0,0,0.06);
+    --radius: 10px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0e0f11;
+    --surface: #16171b;
+    --surface-hover: #1c1d22;
+    --border: #2a2b31;
+    --border-focus: #4a4b55;
+    --text-primary: #d4d4d8;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --accent-glow: rgba(167, 139, 250, 0.15);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm); z-index: 50; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--border-focus); transform: scale(1.05); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  :root .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* Header */
+  .header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 36px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: var(--font-serif); font-weight: 300;
+    font-size: 1.1rem; letter-spacing: 0.02em; color: var(--text-secondary);
+  }
+  .header h1 em { color: var(--accent); font-style: normal; }
+  .corpus-count {
+    font-size: 0.7rem; color: var(--text-muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* ======================== */
+  /* Unified Capture Card     */
+  /* ======================== */
+  .capture-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.35s ease;
+  }
+  .capture-card:focus-within {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-dim), var(--shadow-md);
+  }
+
+  /* Primary content field */
+  .primary-input {
+    width: 100%; background: transparent; border: none;
+    color: var(--text-primary); font-family: var(--font-mono);
+    font-size: 0.85rem; font-weight: 300;
+    padding: 16px 18px; outline: none; resize: none;
+    line-height: 1.6; min-height: 52px; max-height: 240px; overflow-y: auto;
+  }
+  .primary-input::placeholder {
+    color: var(--text-muted); font-style: italic; font-family: var(--font-serif);
+  }
+
+  /* Attachment bar */
+  .attach-bar {
+    display: flex; align-items: center; gap: 4px;
+    padding: 0 14px; height: 36px;
+    border-top: 1px solid transparent; transition: border-color 0.2s ease;
+  }
+  .capture-card:focus-within .attach-bar,
+  .attach-bar.has-content { border-top-color: var(--border); }
+
+  .attach-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; font-weight: 400; letter-spacing: 0.06em;
+    color: var(--text-muted); background: transparent;
+    border: 1px solid transparent; border-radius: 6px;
+    cursor: pointer; transition: all 0.2s ease; text-transform: uppercase;
+  }
+  .attach-btn:hover {
+    color: var(--text-secondary); border-color: var(--border); background: var(--surface-hover);
+  }
+  .attach-btn.active {
+    color: var(--accent); border-color: var(--accent); background: var(--accent-dim);
+  }
+  .attach-btn .icon { font-size: 0.8rem; line-height: 1; }
+  .attach-spacer { flex: 1; }
+  .char-count { font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.03em; }
+
+  /* Expandable secondary fields */
+  .secondary-field {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease; opacity: 0;
+  }
+  .secondary-field.open { max-height: 120px; opacity: 1; }
+
+  .secondary-input {
+    width: 100%; background: var(--surface-hover);
+    border: none; border-top: 1px solid var(--border);
+    color: var(--text-primary); font-family: var(--font-mono);
+    font-size: 0.78rem; font-weight: 300;
+    padding: 10px 18px; outline: none; resize: none;
+    line-height: 1.5; transition: background 0.35s ease;
+  }
+  .secondary-input::placeholder {
+    color: var(--text-muted); font-style: italic;
+    font-family: var(--font-serif); font-size: 0.78rem;
+  }
+  input.secondary-input { height: 40px; }
+  textarea.secondary-input { min-height: 40px; max-height: 80px; overflow-y: auto; }
+
+  .field-label {
+    font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); padding: 6px 18px 0 18px;
+    background: var(--surface-hover); border-top: 1px solid var(--border);
+    transition: background 0.35s ease;
+  }
+
+  /* Hint */
+  .capture-hint {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding: 0 4px;
+  }
+  .hint-text { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.03em; }
+  .hint-text kbd {
+    display: inline-block; padding: 1px 5px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.6rem; margin: 0 2px;
+  }
+  .url-hint { font-size: 0.65rem; color: var(--accent); letter-spacing: 0.03em; }
+
+  /* Tags — auto-generated */
+  .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    margin-top: 14px; padding: 0 2px; min-height: 24px;
+  }
+  .tag-label {
+    font-size: 0.55rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted); margin-right: 4px;
+  }
+  .tag-placeholder {
+    font-size: 0.6rem; font-style: italic; font-family: var(--font-serif);
+    color: var(--text-muted); opacity: 0.6;
+  }
+  .tag {
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; font-weight: 400; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease; user-select: none;
+    opacity: 0; transform: translateY(4px) scale(0.92);
+    animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag:hover { border-color: var(--border-focus); color: var(--text-secondary); }
+  .tag.auto { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag.auto:hover {
+    background: transparent; color: var(--text-muted);
+    border-color: var(--border); text-decoration: line-through;
+  }
+  .tag.dismissed {
+    opacity: 0.3; text-decoration: line-through;
+    border-color: var(--border); color: var(--text-muted); background: transparent;
+  }
+  .tag-add {
+    padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: transparent;
+    border: 1px dashed var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color: var(--border-focus); color: var(--text-secondary); border-style: solid; }
+  @keyframes tag-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Capture button */
+  .capture-btn {
+    width: 100%; margin-top: 16px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+  }
+  .capture-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .capture-btn:active { transform: scale(0.99); }
+  .capture-btn.capturing { border-color: var(--accent); color: var(--accent); pointer-events: none; }
+  .capture-btn.captured { border-color: var(--success); color: var(--success); background: var(--success-dim); pointer-events: none; }
+
+  /* Ripple */
+  .ripple-container { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
+  .ripple {
+    position: absolute; border-radius: 50%; border: 1px solid var(--accent);
+    opacity: 0; animation: ripple-out 1s ease-out forwards;
+  }
+  @keyframes ripple-out {
+    0% { width:0; height:0; opacity:0.35; }
+    100% { width:300px; height:300px; opacity:0; }
+  }
+
+  /* Recent captures */
+  .recent { margin-top: 44px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .recent-header {
+    font-size: 0.6rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px;
+  }
+  .recent-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+    animation: fade-in 0.4s ease-out;
+  }
+  [data-theme="dark"] .recent-item { border-bottom-color: rgba(255,255,255,0.05); }
+  @keyframes fade-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .recent-type {
+    font-size: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-muted); background: var(--surface-hover);
+    padding: 3px 7px; border-radius: 4px; white-space: nowrap;
+    margin-top: 2px; flex-shrink: 0;
+  }
+  .recent-type.bundle { color: var(--accent); }
+  .recent-type.url { color: #8b7ec8; }
+  .recent-type.paste { color: #c47a9a; }
+  .recent-type.note { color: #6a9fc4; }
+  [data-theme="dark"] .recent-type.url { color: #a78bfa; }
+  [data-theme="dark"] .recent-type.paste { color: #f9a8d4; }
+  [data-theme="dark"] .recent-type.note { color: #93c5fd; }
+
+  .recent-content { flex: 1; min-width: 0; }
+  .recent-title {
+    font-family: var(--font-serif); font-size: 0.85rem; font-weight: 400;
+    color: var(--text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
+  }
+  .recent-meta { font-size: 0.6rem; color: var(--text-muted); margin-top: 3px; }
+  .recent-parts { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .recent-part {
+    font-size: 0.5rem; letter-spacing: 0.04em; color: var(--text-muted);
+    background: var(--surface-hover); padding: 2px 6px; border-radius: 3px;
+  }
+  .recent-status { font-size: 0.55rem; color: var(--success); letter-spacing: 0.05em; flex-shrink: 0; margin-top: 4px; }
+  .recent-status.processing { color: var(--accent); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 16px; }
+    .primary-input, .secondary-input { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+  <div class="header">
+    <h1>capture <em>·</em> browse</h1>
+    <span class="corpus-count">247 items in corpus</span>
+  </div>
+
+  <!-- Unified capture card -->
+  <div class="capture-card" id="capture-card">
+    <textarea
+      class="primary-input"
+      id="primary-input"
+      placeholder="paste a tweet, drop a link, type a thought…"
+      rows="1"
+    ></textarea>
+
+    <div class="attach-bar" id="attach-bar">
+      <button class="attach-btn" id="btn-source" onclick="toggleField('source')">
+        <span class="icon">🔗</span> source
+      </button>
+      <button class="attach-btn" id="btn-note" onclick="toggleField('note')">
+        <span class="icon">✎</span> note
+      </button>
+      <span class="attach-spacer"></span>
+      <span class="char-count" id="char-count"></span>
+    </div>
+
+    <div class="secondary-field" id="field-source">
+      <div class="field-label">source url</div>
+      <input
+        type="url"
+        class="secondary-input"
+        id="source-input"
+        placeholder="https://twitter.com/…"
+        spellcheck="false"
+      />
+    </div>
+
+    <div class="secondary-field" id="field-note">
+      <div class="field-label">your note</div>
+      <textarea
+        class="secondary-input"
+        id="note-input"
+        placeholder="why this matters, what it connects to…"
+        rows="1"
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="capture-hint">
+    <span class="hint-text"><kbd>⌘</kbd><kbd>Enter</kbd> to capture</span>
+    <span class="url-hint" id="url-detected" style="display:none;">url detected — will scrape</span>
+  </div>
+
+  <div class="tag-row" id="tag-row">
+    <span class="tag-label">tags</span>
+    <span class="tag-placeholder">auto-generated on capture</span>
+  </div>
+
+  <button class="capture-btn" id="capture-btn" onclick="capture()">Capture</button>
+
+  <div class="recent">
+    <div class="recent-header">Recently captured</div>
+
+    <div class="recent-item">
+      <span class="recent-type bundle">bundle</span>
+      <div class="recent-content">
+        <div class="recent-title">"80% of RAG failures trace back to ingestion, not the LLM"</div>
+        <div class="recent-meta">tagged: rag, evals</div>
+        <div class="recent-parts">
+          <span class="recent-part">content: 91 chars</span>
+          <span class="recent-part">source: blog.premai.io</span>
+          <span class="recent-part">note: attached</span>
+        </div>
+      </div>
+      <span class="recent-status">embedded</span>
+    </div>
+
+    <div class="recent-item">
+      <span class="recent-type url">url</span>
+      <div class="recent-content">
+        <div class="recent-title">Hybrid Search for RAG: BM25, SPLADE, and Vector Search</div>
+        <div class="recent-meta">blog.premai.io · 12 chunks · tagged: rag</div>
+      </div>
+      <span class="recent-status">embedded</span>
+    </div>
+
+    <div class="recent-item">
+      <span class="recent-type paste">paste</span>
+      <div class="recent-content">
+        <div class="recent-title">"The abuse of generic metrics is endemic…" — Hamel Husain</div>
+        <div class="recent-meta">137 chars · tagged: evals</div>
+      </div>
+      <span class="recent-status processing">chunking…</span>
+    </div>
+
+    <div class="recent-item">
+      <span class="recent-type note">note</span>
+      <div class="recent-content">
+        <div class="recent-title">recursive 512-token splitting beats semantic chunking — counterintuitive</div>
+        <div class="recent-meta">94 chars · tagged: rag</div>
+      </div>
+      <span class="recent-status">embedded</span>
+    </div>
+  </div>
+</div>
+
+<div class="ripple-container" id="ripple-container"></div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+  (function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+
+  // Field toggles
+  function toggleField(name) {
+    const field = document.getElementById(`field-${name}`);
+    const btn = document.getElementById(`btn-${name}`);
+    field.classList.toggle('open');
+    btn.classList.toggle('active');
+    if (field.classList.contains('open')) {
+      setTimeout(() => {
+        const input = field.querySelector('input, textarea');
+        if (input) input.focus();
+      }, 150);
+    }
+    updateAttachBar();
+  }
+
+  function updateAttachBar() {
+    const bar = document.getElementById('attach-bar');
+    const hasOpen = document.querySelector('.secondary-field.open');
+    bar.classList.toggle('has-content', !!hasOpen);
+  }
+
+  // Auto-resize
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      const max = this.classList.contains('primary-input') ? 240 : 80;
+      this.style.height = Math.min(this.scrollHeight, max) + 'px';
+      updateCharCount();
+      detectUrl();
+    });
+  });
+
+  function updateCharCount() {
+    const p = document.getElementById('primary-input').value;
+    const n = document.getElementById('note-input').value;
+    const total = p.length + n.length;
+    document.getElementById('char-count').textContent = total > 0 ? `${total} chars` : '';
+  }
+
+  function detectUrl() {
+    const val = document.getElementById('primary-input').value.trim();
+    const isUrl = /^https?:\/\/\S+$/.test(val) && !val.includes('\n');
+    document.getElementById('url-detected').style.display = isUrl ? 'inline' : 'none';
+  }
+
+  // Auto-tag classification
+  const tagDictionary = {
+    'rag': ['rag','retrieval','augmented','generation','chunking','chunk','embedding','vector','bm25','sparse','dense','rerank','hybrid search','knowledge base','corpus','ingest'],
+    'agents': ['agent','agentic','orchestrat','mcp','tool use','function call','openclaw','nanoclaw','autonomou','multi-agent','workflow'],
+    'evals': ['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','precision','recall','hallucin','judge','quality'],
+    'infra': ['deploy','docker','kubernetes','server','cloud','aws','gpu','mlops','inference','latency','production','api','endpoint'],
+    'tcf': ['tcf','tijuana','claw','fighter','arena','battle','websocket'],
+    'career': ['job','interview','resume','portfolio','salary','hiring','startup','career','transition'],
+    'learning': ['learn','study','course','tutorial','book','paper','research','understand','concept'],
+    'llm': ['llm','language model','gpt','claude','qwen','mistral','transformer','token','context window','fine-tun','prompt']
+  };
+
+  function classifyContent(text) {
+    const lower = text.toLowerCase();
+    let matches = [];
+    for (const [tag, keywords] of Object.entries(tagDictionary)) {
+      let score = 0;
+      for (const kw of keywords) { if (lower.includes(kw)) score++; }
+      if (score > 0) matches.push({ tag, score });
+    }
+    matches.sort((a, b) => b.score - a.score);
+    return matches.slice(0, 3).map(m => m.tag);
+  }
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    const label = row.querySelector('.tag-label');
+    row.innerHTML = '';
+    row.appendChild(label);
+    tags.forEach((tagName, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag auto';
+      tag.textContent = tagName;
+      tag.style.animationDelay = `${i * 0.1}s`;
+      tag.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+      row.appendChild(tag);
+    });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'tag-add';
+    addBtn.textContent = '+ add';
+    addBtn.style.animationDelay = `${tags.length * 0.1}s`;
+    addBtn.onclick = function() {
+      const name = prompt('Tag name:');
+      if (name && name.trim()) {
+        const t = document.createElement('span');
+        t.className = 'tag auto';
+        t.textContent = name.trim().toLowerCase();
+        t.style.animation = 'tag-appear 0.35s ease-out forwards';
+        t.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+        row.insertBefore(t, addBtn);
+      }
+    };
+    row.appendChild(addBtn);
+  }
+
+  function resetTagRow() {
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span><span class="tag-placeholder">auto-generated on capture</span>';
+  }
+
+  function getActiveTags() {
+    return Array.from(document.querySelectorAll('.tag.auto:not(.dismissed)')).map(t => t.textContent);
+  }
+
+  // Capture
+  function capture() {
+    const primary = document.getElementById('primary-input').value.trim();
+    if (!primary) return;
+    const sourceVal = document.getElementById('source-input').value.trim();
+    const noteVal = document.getElementById('note-input').value.trim();
+    const allText = [primary, noteVal].filter(Boolean).join(' ');
+    const autoTags = classifyContent(allText);
+
+    const btn = document.getElementById('capture-btn');
+    btn.textContent = 'Capturing…';
+    btn.classList.add('capturing');
+
+    const rect = btn.getBoundingClientRect();
+    spawnRipple(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    setTimeout(() => showAutoTags(autoTags.length ? autoTags : ['untagged']), 300);
+
+    setTimeout(() => {
+      btn.textContent = 'Captured';
+      btn.classList.remove('capturing');
+      btn.classList.add('captured');
+      addRecentItem(primary, sourceVal, noteVal, getActiveTags());
+
+      setTimeout(() => {
+        document.getElementById('primary-input').value = '';
+        document.getElementById('primary-input').style.height = 'auto';
+        document.getElementById('source-input').value = '';
+        document.getElementById('note-input').value = '';
+        document.getElementById('note-input').style.height = 'auto';
+        document.getElementById('field-source').classList.remove('open');
+        document.getElementById('field-note').classList.remove('open');
+        document.getElementById('btn-source').classList.remove('active');
+        document.getElementById('btn-note').classList.remove('active');
+        document.getElementById('url-detected').style.display = 'none';
+        updateAttachBar();
+        btn.textContent = 'Capture';
+        btn.classList.remove('captured');
+        updateCharCount();
+        resetTagRow();
+      }, 1200);
+    }, 600);
+  }
+
+  function addRecentItem(content, source, note, tags) {
+    const container = document.querySelector('.recent');
+    const isUrl = /^https?:\/\/\S+$/.test(content) && !content.includes('\n');
+    const hasSource = source.length > 0;
+    const hasNote = note.length > 0;
+
+    let type = 'paste';
+    if (isUrl && !hasSource && !hasNote) type = 'url';
+    else if (!isUrl && !hasSource && !hasNote && content.length < 200) type = 'note';
+    if (hasSource || hasNote) type = 'bundle';
+
+    const title = content.length > 72 ? content.substring(0, 72) + '…' : content;
+    let metaParts = [];
+    if (isUrl) {
+      try { metaParts.push(new URL(content).hostname); } catch(e) {}
+      metaParts.push('scraping…');
+    } else {
+      metaParts.push(`${content.length} chars`);
+    }
+    if (tags.length) metaParts.push('tagged: ' + tags.join(', '));
+
+    let partsHtml = '';
+    if (type === 'bundle') {
+      let parts = [`<span class="recent-part">content: ${content.length} chars</span>`];
+      if (hasSource) {
+        let h = source; try { h = new URL(source).hostname; } catch(e) {}
+        parts.push(`<span class="recent-part">source: ${h}</span>`);
+      }
+      if (hasNote) parts.push(`<span class="recent-part">note: ${note.length} chars</span>`);
+      partsHtml = `<div class="recent-parts">${parts.join('')}</div>`;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'recent-item';
+    item.innerHTML = `
+      <span class="recent-type ${type}">${type}</span>
+      <div class="recent-content">
+        <div class="recent-title">${title}</div>
+        <div class="recent-meta">${metaParts.join(' · ')}</div>
+        ${partsHtml}
+      </div>
+      <span class="recent-status processing">processing…</span>
+    `;
+    container.querySelector('.recent-header').after(item);
+    setTimeout(() => {
+      item.querySelector('.recent-status').textContent = 'embedded';
+      item.querySelector('.recent-status').classList.remove('processing');
+    }, 2500);
+  }
+
+  function spawnRipple(x, y) {
+    const c = document.getElementById('ripple-container');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (x - 150) + 'px';
+    r.style.top = (y - 150) + 'px';
+    c.appendChild(r);
+    setTimeout(() => r.remove(), 1000);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); capture(); }
+  });
+
+  window.addEventListener('load', () => document.getElementById('primary-input').focus());
+</script>
+</body>
+</html>

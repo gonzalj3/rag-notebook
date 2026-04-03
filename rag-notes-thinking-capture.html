@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Thinking Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2ed;
+    --surface: #ffffff;
+    --surface-warm: #faf8f5;
+    --border: #e0dbd3;
+    --border-focus: #c5bfb5;
+    --text-primary: #2c2a26;
+    --text-secondary: #5c5850;
+    --text-muted: #9b9588;
+    --text-faint: #c4bfb5;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.06);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.06);
+    --connection: #b08840;
+    --connection-dim: rgba(176, 136, 64, 0.08);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 3px 12px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+    --scan-color: rgba(124, 92, 191, 0.15);
+  }
+
+  [data-theme="dark"] {
+    --bg: #111210;
+    --surface: #1a1b19;
+    --surface-warm: #1e1f1c;
+    --border: #2e2f2b;
+    --border-focus: #4a4b45;
+    --text-primary: #d4d2cc;
+    --text-secondary: #a19e96;
+    --text-muted: #5c5a54;
+    --text-faint: #3a3935;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --connection: #d4a853;
+    --connection-dim: rgba(212, 168, 83, 0.1);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+    --shadow-md: 0 3px 12px rgba(0,0,0,0.25);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.35);
+    --scan-color: rgba(167, 139, 250, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .container { width: 100%; max-width: 520px; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm); z-index: 50; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--border-focus); transform: scale(1.05); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  :root .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* Header — warmer, more spacious */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    font-size: 1.2rem;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .header h1 em { color: var(--accent); font-style: normal; }
+
+  .header-sub {
+    font-family: var(--font-serif);
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* ======================== */
+  /*  Camera / Capture State  */
+  /* ======================== */
+
+  .state { display: none; }
+  .state.active { display: block; }
+
+  /* STATE 1: Camera viewfinder */
+  .viewfinder {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--surface-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .viewfinder:hover { transform: scale(1.005); }
+  .viewfinder:active { transform: scale(0.998); }
+
+  /* Simulated viewfinder content */
+  .viewfinder-inner {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    position: relative;
+  }
+
+  /* Corner guides */
+  .corner {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-color: var(--accent);
+    border-style: solid;
+    border-width: 0;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+  }
+  .viewfinder:hover .corner { opacity: 0.7; }
+  .corner.tl { top: 20px; left: 20px; border-top-width: 2px; border-left-width: 2px; border-radius: 3px 0 0 0; }
+  .corner.tr { top: 20px; right: 20px; border-top-width: 2px; border-right-width: 2px; border-radius: 0 3px 0 0; }
+  .corner.bl { bottom: 20px; left: 20px; border-bottom-width: 2px; border-left-width: 2px; border-radius: 0 0 0 3px; }
+  .corner.br { bottom: 20px; right: 20px; border-bottom-width: 2px; border-right-width: 2px; border-radius: 0 0 3px 0; }
+
+  .viewfinder-icon {
+    font-size: 2.4rem;
+    opacity: 0.2;
+    transition: opacity 0.3s ease;
+  }
+  .viewfinder:hover .viewfinder-icon { opacity: 0.35; }
+
+  .viewfinder-text {
+    font-family: var(--font-serif);
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+
+  .viewfinder-hint {
+    font-size: 0.6rem;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Hidden file input */
+  .file-input { display: none; }
+
+  /* Or-divider */
+  .or-divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 20px 0;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .or-divider span {
+    font-size: 0.6rem; color: var(--text-faint);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  /* Upload alternative */
+  .upload-btn {
+    display: block; width: 100%;
+    padding: 12px; text-align: center;
+    background: var(--surface); border: 1px dashed var(--border);
+    border-radius: var(--radius); color: var(--text-muted);
+    font-family: var(--font-mono); font-size: 0.7rem;
+    letter-spacing: 0.06em; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .upload-btn:hover {
+    border-color: var(--border-focus); border-style: solid;
+    color: var(--text-secondary); background: var(--surface-warm);
+  }
+
+  /* ======================== */
+  /*  STATE 2: Scanning       */
+  /* ======================== */
+
+  .scan-card {
+    position: relative;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .scan-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--surface-warm);
+  }
+
+  .scan-image-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
+  /* The scanning line */
+  .scan-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 20px 4px var(--scan-color);
+    animation: scan-sweep 2s ease-in-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes scan-sweep {
+    0% { top: 0; opacity: 0; }
+    5% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  .scan-status {
+    padding: 16px 20px;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    animation: pulse-text 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-text {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* ======================== */
+  /*  STATE 3: Review         */
+  /* ======================== */
+
+  .review-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Photo thumbnail */
+  .review-photo {
+    position: relative;
+    width: 100%;
+    max-height: 200px;
+    overflow: hidden;
+    background: var(--surface-warm);
+  }
+
+  .review-photo img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block;
+  }
+
+  .photo-badge {
+    position: absolute; bottom: 10px; left: 14px;
+    font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: white; background: rgba(0,0,0,0.45);
+    padding: 3px 8px; border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Extracted text */
+  .review-text-section {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .review-label {
+    font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .review-label .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success);
+    display: inline-block;
+  }
+
+  .extracted-text {
+    width: 100%; background: transparent; border: none;
+    color: var(--text-primary); font-family: var(--font-serif);
+    font-size: 0.92rem; font-weight: 400;
+    line-height: 1.75; outline: none; resize: none;
+    min-height: 60px;
+    transition: color 0.35s ease;
+  }
+
+  .extracted-text::placeholder {
+    color: var(--text-faint); font-style: italic;
+  }
+
+  .edit-hint {
+    font-size: 0.55rem; color: var(--text-faint);
+    margin-top: 8px; letter-spacing: 0.03em;
+  }
+
+  /* Connection — the reflection nudge */
+  .connection {
+    margin: 0 20px 20px 20px;
+    padding: 14px 16px;
+    background: var(--connection-dim);
+    border: 1px solid rgba(176, 136, 64, 0.15);
+    border-radius: 8px;
+    transition: background 0.35s ease;
+  }
+
+  [data-theme="dark"] .connection {
+    border-color: rgba(212, 168, 83, 0.15);
+  }
+
+  .connection-label {
+    font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--connection); margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .connection-text {
+    font-family: var(--font-serif);
+    font-size: 0.82rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .connection-source {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Note field in review */
+  .review-note-section {
+    padding: 0 20px 20px 20px;
+  }
+
+  .review-note-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: none; border: none;
+    cursor: pointer; padding: 4px 0; letter-spacing: 0.04em;
+    transition: color 0.2s ease;
+  }
+  .review-note-toggle:hover { color: var(--text-secondary); }
+
+  .review-note-field {
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+    margin-top: 0;
+  }
+  .review-note-field.open { max-height: 120px; opacity: 1; margin-top: 10px; }
+
+  .review-note-input {
+    width: 100%; background: var(--surface-warm);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); font-family: var(--font-mono);
+    font-size: 0.78rem; font-weight: 300;
+    padding: 10px 14px; outline: none; resize: none;
+    line-height: 1.5; min-height: 40px; max-height: 80px;
+    transition: border-color 0.2s ease;
+  }
+  .review-note-input:focus { border-color: var(--border-focus); }
+  .review-note-input::placeholder {
+    color: var(--text-faint); font-style: italic; font-family: var(--font-serif);
+  }
+
+  /* Tags */
+  .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    padding: 0 20px 16px 20px; min-height: 24px;
+  }
+  .tag-label {
+    font-size: 0.55rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted); margin-right: 4px;
+  }
+  .tag-placeholder {
+    font-size: 0.6rem; font-style: italic; font-family: var(--font-serif);
+    color: var(--text-faint); opacity: 0.6;
+  }
+  .tag {
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface-warm);
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease; user-select: none;
+    opacity: 0; transform: translateY(4px) scale(0.92);
+    animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag.auto { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag.auto:hover { background: transparent; color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+  .tag.dismissed { opacity: 0.3; text-decoration: line-through; border-color: var(--border); color: var(--text-muted); background: transparent; }
+  .tag-add {
+    padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: transparent;
+    border: 1px dashed var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color: var(--border-focus); color: var(--text-secondary); border-style: solid; }
+  @keyframes tag-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Save button */
+  .save-btn {
+    width: 100%; margin-top: 20px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .save-btn:active { transform: scale(0.99); }
+  .save-btn.saved { border-color: var(--success); color: var(--success); background: var(--success-dim); pointer-events: none; }
+
+  /* Retake */
+  .retake-row {
+    text-align: center; margin-top: 12px;
+  }
+  .retake-btn {
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: none; border: none;
+    cursor: pointer; letter-spacing: 0.04em;
+    text-decoration: underline; text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+  .retake-btn:hover { color: var(--text-secondary); }
+
+  /* Ripple */
+  .ripple-container { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
+  .ripple {
+    position:absolute; border-radius:50%; border:1px solid var(--success);
+    opacity:0; animation: ripple-out 1.2s ease-out forwards;
+  }
+  @keyframes ripple-out {
+    0% { width:0; height:0; opacity:0.3; }
+    100% { width:350px; height:350px; opacity:0; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 16px; }
+    .extracted-text, .review-note-input { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+  <div class="header">
+    <h1>capture <em>·</em> think</h1>
+    <div class="header-sub">photograph your handwritten notes</div>
+  </div>
+
+  <!-- STATE 1: Camera / Upload -->
+  <div class="state active" id="state-camera">
+    <div class="viewfinder" id="viewfinder" onclick="document.getElementById('file-input').click()">
+      <div class="viewfinder-inner">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="viewfinder-icon">📷</div>
+        <div class="viewfinder-text">tap to photograph your notes</div>
+        <div class="viewfinder-hint">or drag &amp; drop an image</div>
+      </div>
+    </div>
+
+    <input type="file" class="file-input" id="file-input" accept="image/*" capture="environment" onchange="handleFile(this)" />
+
+    <div class="or-divider"><span>or</span></div>
+
+    <label class="upload-btn" for="file-upload">
+      choose from photo library
+    </label>
+    <input type="file" class="file-input" id="file-upload" accept="image/*" onchange="handleFile(this)" />
+  </div>
+
+  <!-- STATE 2: Scanning -->
+  <div class="state" id="state-scanning">
+    <div class="scan-card">
+      <div class="scan-image-wrap" id="scan-image-wrap">
+        <img id="scan-preview" src="" alt="Captured note" />
+        <div class="scan-line" id="scan-line"></div>
+      </div>
+      <div class="scan-status">reading your handwriting…</div>
+    </div>
+  </div>
+
+  <!-- STATE 3: Review -->
+  <div class="state" id="state-review">
+    <div class="review-card">
+
+      <div class="review-photo" id="review-photo">
+        <img id="review-image" src="" alt="Your handwritten note" />
+        <span class="photo-badge">handwritten · original preserved</span>
+      </div>
+
+      <div class="review-text-section">
+        <div class="review-label">
+          <span class="status-dot"></span>
+          extracted text
+        </div>
+        <textarea
+          class="extracted-text"
+          id="extracted-text"
+          placeholder="OCR text will appear here…"
+        ></textarea>
+        <div class="edit-hint">tap to correct if the OCR missed something</div>
+      </div>
+
+      <!-- Connection — one gentle nudge -->
+      <div class="connection" id="connection">
+        <div class="connection-label">🧵 this connects to</div>
+        <div class="connection-text" id="connection-text">
+          Your note from March 28 about chunking strategy — you wrote that recursive splitting felt "counterintuitively right." This new note seems to build on that intuition.
+        </div>
+        <div class="connection-source" id="connection-source">
+          from: handwritten note · 5 days ago · tagged: rag
+        </div>
+      </div>
+
+      <!-- Optional note -->
+      <div class="review-note-section">
+        <button class="review-note-toggle" onclick="toggleReviewNote()">
+          ✎ add a reflection
+        </button>
+        <div class="review-note-field" id="review-note-field">
+          <textarea
+            class="review-note-input"
+            id="review-note"
+            placeholder="what are you thinking about this…"
+            rows="1"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="tag-row" id="tag-row">
+        <span class="tag-label">tags</span>
+        <span class="tag-placeholder">auto-generated</span>
+      </div>
+
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="saveToCorpus()">
+      Save to corpus
+    </button>
+
+    <div class="retake-row">
+      <button class="retake-btn" onclick="retake()">retake photo</button>
+    </div>
+  </div>
+</div>
+
+<div class="ripple-container" id="ripple-container"></div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+  (function initTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+
+  // State management
+  function showState(name) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(`state-${name}`).classList.add('active');
+  }
+
+  // File handling
+  let capturedImageData = null;
+
+  function handleFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      capturedImageData = e.target.result;
+      startScan(capturedImageData);
+    };
+    reader.readAsDataURL(file);
+    input.value = ''; // reset so same file can be re-selected
+  }
+
+  // Drag and drop
+  const viewfinder = document.getElementById('viewfinder');
+  viewfinder.addEventListener('dragover', e => {
+    e.preventDefault();
+    viewfinder.style.borderColor = 'var(--accent)';
+  });
+  viewfinder.addEventListener('dragleave', () => {
+    viewfinder.style.borderColor = 'var(--border)';
+  });
+  viewfinder.addEventListener('drop', e => {
+    e.preventDefault();
+    viewfinder.style.borderColor = 'var(--border)';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = ev => { capturedImageData = ev.target.result; startScan(capturedImageData); };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Scanning state
+  function startScan(imgData) {
+    document.getElementById('scan-preview').src = imgData;
+    showState('scanning');
+
+    // Restart scan line animation
+    const line = document.getElementById('scan-line');
+    line.style.animation = 'none';
+    line.offsetHeight; // reflow
+    line.style.animation = 'scan-sweep 2s ease-in-out forwards';
+
+    // Simulate OCR processing
+    setTimeout(() => {
+      showReview(imgData);
+    }, 2200);
+  }
+
+  // Review state
+  const sampleTexts = [
+    "Recursive splitting at 512 tokens — the simplest approach wins.\nNot because it's theoretically optimal but because semantic chunking creates too many tiny fragments.\nThe system needs enough context per chunk for the LLM to reason about.\n\n→ Start simple, measure, only add complexity when metrics demand it.",
+    "Hybrid retrieval = BM25 + dense vectors\nBM25 catches exact terms (error codes, names, specific phrases)\nDense catches meaning (paraphrases, related concepts)\nNeither alone is sufficient.\n\nFor my notebook: I'll search by exact phrases sometimes and by concept other times. Need both.",
+    "Evals are not optional — they ARE the development process.\nHamel's insight: teams that succeed barely talk about tools.\nThey obsess over measurement and iteration.\n\nWhat to measure:\n- Retrieval recall (am I finding the right chunks?)\n- Faithfulness (is the answer grounded in what was retrieved?)\n- My own satisfaction (did this actually help me think?)"
+  ];
+
+  function showReview(imgData) {
+    document.getElementById('review-image').src = imgData;
+    showState('review');
+
+    // Simulate extracted text
+    const text = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+    const textArea = document.getElementById('extracted-text');
+    textArea.value = '';
+
+    // Type it in gradually for a "reading your handwriting" feel
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        textArea.value += text[i];
+        i++;
+        textArea.style.height = 'auto';
+        textArea.style.height = textArea.scrollHeight + 'px';
+      } else {
+        clearInterval(interval);
+        // Auto-generate tags after text appears
+        const tags = classifyContent(text);
+        showAutoTags(tags.length ? tags : ['notes']);
+      }
+    }, 12);
+  }
+
+  // Auto-resize
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+  });
+
+  // Review note toggle
+  function toggleReviewNote() {
+    const field = document.getElementById('review-note-field');
+    field.classList.toggle('open');
+    if (field.classList.contains('open')) {
+      setTimeout(() => document.getElementById('review-note').focus(), 150);
+    }
+  }
+
+  // Tag system
+  const tagDictionary = {
+    'rag': ['rag','retrieval','chunking','chunk','embedding','vector','bm25','sparse','dense','rerank','hybrid','corpus','ingest'],
+    'agents': ['agent','agentic','orchestrat','mcp','tool use','openclaw','nanoclaw'],
+    'evals': ['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','precision','recall','hallucin','judge','measure'],
+    'infra': ['deploy','docker','kubernetes','server','cloud','gpu','mlops','inference','latency','production','api'],
+    'learning': ['learn','study','course','understand','concept','insight','intuition','principle'],
+    'llm': ['llm','language model','gpt','claude','qwen','mistral','transformer','token','context window','prompt']
+  };
+
+  function classifyContent(text) {
+    const lower = text.toLowerCase();
+    let matches = [];
+    for (const [tag, keywords] of Object.entries(tagDictionary)) {
+      let score = 0;
+      for (const kw of keywords) { if (lower.includes(kw)) score++; }
+      if (score > 0) matches.push({ tag, score });
+    }
+    matches.sort((a, b) => b.score - a.score);
+    return matches.slice(0, 3).map(m => m.tag);
+  }
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span>';
+    tags.forEach((tagName, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag auto';
+      tag.textContent = tagName;
+      tag.style.animationDelay = `${i * 0.1}s`;
+      tag.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+      row.appendChild(tag);
+    });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'tag-add';
+    addBtn.textContent = '+ add';
+    addBtn.style.animationDelay = `${tags.length * 0.1}s`;
+    addBtn.onclick = function() {
+      const name = prompt('Tag name:');
+      if (name && name.trim()) {
+        const t = document.createElement('span');
+        t.className = 'tag auto'; t.textContent = name.trim().toLowerCase();
+        t.style.animation = 'tag-appear 0.35s ease-out forwards';
+        t.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+        row.insertBefore(t, addBtn);
+      }
+    };
+    row.appendChild(addBtn);
+  }
+
+  // Save
+  function saveToCorpus() {
+    const btn = document.getElementById('save-btn');
+    btn.textContent = 'Saving…';
+
+    const rect = btn.getBoundingClientRect();
+    const c = document.getElementById('ripple-container');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (rect.left + rect.width / 2 - 175) + 'px';
+    r.style.top = (rect.top + rect.height / 2 - 175) + 'px';
+    c.appendChild(r);
+    setTimeout(() => r.remove(), 1200);
+
+    setTimeout(() => {
+      btn.textContent = 'Saved to corpus';
+      btn.classList.add('saved');
+
+      setTimeout(() => {
+        btn.textContent = 'Save to corpus';
+        btn.classList.remove('saved');
+        retake();
+      }, 1500);
+    }, 600);
+  }
+
+  // Retake
+  function retake() {
+    showState('camera');
+    document.getElementById('extracted-text').value = '';
+    document.getElementById('review-note').value = '';
+    document.getElementById('review-note-field').classList.remove('open');
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span><span class="tag-placeholder">auto-generated</span>';
+    capturedImageData = null;
+  }
+</script>
+</body>
+</html>

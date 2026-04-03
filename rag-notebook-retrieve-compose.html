@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieve — Compose</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f6f5f2;--surface:#fff;--surface-alt:#f9f7f3;--surface-hover:#f0efec;--border:#dddad3;--border-focus:#b8b4ab;--text-primary:#2c2a26;--text-secondary:#5c5850;--text-muted:#9b9588;--text-faint:#c4bfb4;--text-ghost:#ddd9d0;--accent:#7c5cbf;--accent-dim:rgba(124,92,191,.06);--compose:#8b4513;--compose-dim:rgba(139,69,19,.04);--compose-border:rgba(139,69,19,.15);--quote-bg:#fdfcfa;--quote-border:#e8e4db;--question:#3d6b8e;--question-dim:rgba(61,107,142,.04);--question-border:rgba(61,107,142,.15);--success:#3a9a6e;--shadow-sm:0 1px 3px rgba(0,0,0,.03);--shadow-md:0 2px 10px rgba(0,0,0,.05);--radius:10px;--radius-lg:14px;--font-mono:'IBM Plex Mono',monospace;--font-serif:'Newsreader',serif;--font-body:'Lora',serif;}
+  [data-theme="dark"]{--bg:#111210;--surface:#191a18;--surface-alt:#1e1f1c;--surface-hover:#252622;--border:#2e2f2b;--border-focus:#4a4b45;--text-primary:#d6d4ce;--text-secondary:#a8a59c;--text-muted:#6a665e;--text-faint:#3e3d38;--text-ghost:#2e2d29;--accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--compose:#d4955a;--compose-dim:rgba(212,149,90,.06);--compose-border:rgba(212,149,90,.18);--quote-bg:#1a1b18;--quote-border:#2e2f2b;--question:#6aa4cc;--question-dim:rgba(106,164,204,.05);--question-border:rgba(106,164,204,.15);--success:#6ee7b7;--shadow-sm:0 1px 3px rgba(0,0,0,.15);--shadow-md:0 2px 10px rgba(0,0,0,.2);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text-primary);font-family:var(--font-mono);font-weight:300;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 20px;-webkit-font-smoothing:antialiased;transition:background .35s,color .35s;}
+  .container{width:100%;max-width:640px;}
+
+  .theme-toggle{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .3s;box-shadow:var(--shadow-sm);z-index:50;padding:0;line-height:1;}
+  .theme-toggle:hover{border-color:var(--border-focus);transform:scale(1.05);}
+  .theme-toggle .icon-sun,.theme-toggle .icon-moon{display:none;}
+  :root .theme-toggle .icon-moon{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-sun{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-moon{display:none;}
+
+  /* Header */
+  .header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .header h1{font-family:var(--font-serif);font-weight:300;font-size:1.1rem;color:var(--text-secondary);}
+  .header h1 em{color:var(--compose);font-style:normal;}
+  .header-right{margin-right:36px;display:flex;align-items:center;gap:10px;}
+  .quote-count{font-size:.6rem;color:var(--text-faint);letter-spacing:.06em;}
+
+  /* Topic */
+  .topic-section{margin-bottom:28px;}
+  .topic-label{font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+  .topic-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-serif);font-size:1.05rem;font-weight:500;padding:14px 16px;outline:none;transition:border-color .25s,box-shadow .25s;box-shadow:var(--shadow-sm);}
+  .topic-input::placeholder{color:var(--text-ghost);font-weight:300;font-style:italic;}
+  .topic-input:focus{border-color:var(--compose);box-shadow:0 0 0 3px var(--compose-dim),var(--shadow-sm);}
+  .topic-hint{font-size:.58rem;color:var(--text-faint);margin-top:8px;padding:0 4px;font-family:var(--font-serif);font-style:italic;}
+
+  /* Fetch button */
+  .fetch-btn{display:block;width:100%;margin-top:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-secondary);font-family:var(--font-mono);font-size:.7rem;font-weight:400;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);}
+  .fetch-btn:hover{border-color:var(--compose);color:var(--compose);background:var(--compose-dim);}
+
+  /* Quotes section */
+  .quotes-section{margin-top:8px;}
+  .quotes-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;}
+  .quotes-title{font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;color:var(--compose);font-weight:500;}
+
+  /* Individual quote card */
+  .quote-card{background:var(--quote-bg);border:1px solid var(--quote-border);border-left:3px solid var(--compose-border);border-radius:2px var(--radius) var(--radius) 2px;padding:16px 18px 14px;margin-bottom:14px;position:relative;transition:opacity .3s,transform .3s;animation:quote-in .4s ease-out;}
+  @keyframes quote-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .quote-card.removing{opacity:0;transform:translateX(-20px);margin-bottom:0;padding:0;border:none;overflow:hidden;max-height:0;transition:all .35s;}
+
+  .quote-text{font-family:var(--font-serif);font-size:.88rem;font-weight:400;line-height:1.75;color:var(--text-primary);margin-bottom:10px;}
+  .quote-text::before{content:'"';font-family:var(--font-serif);font-size:1.4rem;color:var(--compose);opacity:.3;margin-right:2px;line-height:0;vertical-align:-.25em;}
+  .quote-text::after{content:'"';font-family:var(--font-serif);font-size:1.4rem;color:var(--compose);opacity:.3;margin-left:2px;line-height:0;vertical-align:-.25em;}
+
+  .quote-source{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .quote-source-type{font-size:.48rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;color:var(--text-muted);background:var(--surface-alt);}
+  .quote-source-name{font-family:var(--font-mono);font-size:.65rem;color:var(--text-muted);}
+  .quote-source-date{font-family:var(--font-mono);font-size:.6rem;color:var(--text-faint);}
+
+  .quote-remove{position:absolute;top:10px;right:12px;font-size:.6rem;color:var(--text-faint);background:none;border:none;cursor:pointer;padding:4px 6px;transition:color .2s;opacity:0;border-radius:4px;}
+  .quote-card:hover .quote-remove{opacity:1;}
+  .quote-remove:hover{color:var(--text-muted);background:var(--surface-hover);}
+
+  /* Divider */
+  .section-divider{display:flex;align-items:center;gap:14px;margin:32px 0 24px;}
+  .section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+  .section-divider span{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+
+  /* Questions section */
+  .questions-section{}
+  .questions-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .questions-title{font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;color:var(--question);font-weight:500;}
+  .regenerate-btn{font-family:var(--font-mono);font-size:.52rem;letter-spacing:.05em;color:var(--question);background:var(--question-dim);border:1px solid var(--question-border);border-radius:16px;padding:4px 12px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+  .regenerate-btn:hover{background:var(--surface-hover);border-color:var(--question);}
+
+  .question-card{background:var(--question-dim);border:1px solid var(--question-border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;position:relative;transition:opacity .3s,transform .3s;animation:quote-in .4s ease-out;}
+  .question-card.removing{opacity:0;transform:translateX(-20px);margin-bottom:0;padding:0;border:none;overflow:hidden;max-height:0;transition:all .35s;}
+
+  .question-number{font-size:.5rem;letter-spacing:.08em;color:var(--question);font-weight:500;margin-bottom:6px;text-transform:uppercase;}
+  .question-text{font-family:var(--font-body);font-size:.9rem;line-height:1.65;color:var(--text-primary);}
+  .question-context{font-family:var(--font-serif);font-size:.72rem;font-style:italic;color:var(--text-muted);margin-top:8px;line-height:1.5;}
+
+  .question-remove{position:absolute;top:10px;right:12px;font-size:.6rem;color:var(--text-faint);background:none;border:none;cursor:pointer;padding:4px 6px;transition:color .2s;opacity:0;border-radius:4px;}
+  .question-card:hover .question-remove{opacity:1;}
+  .question-remove:hover{color:var(--text-muted);background:var(--surface-hover);}
+
+  /* Loading state */
+  .loading{display:none;align-items:center;gap:10px;padding:20px 0;justify-content:center;}
+  .loading.active{display:flex;}
+  .loading-spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--compose);animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-size:.7rem;color:var(--text-muted);font-family:var(--font-serif);font-style:italic;}
+
+  /* Empty state */
+  .empty{text-align:center;padding:40px 20px;}
+  .empty-icon{font-size:1.8rem;opacity:.15;margin-bottom:10px;}
+  .empty-text{font-family:var(--font-serif);font-size:.82rem;font-style:italic;color:var(--text-faint);line-height:1.6;}
+
+  @media(max-width:480px){body{padding:24px 16px;}.topic-input{font-size:16px;}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()"><span class="icon-sun">☀</span><span class="icon-moon">☽</span></button>
+
+<div class="container">
+  <div class="header">
+    <h1>retrieve <em>·</em> compose</h1>
+    <div class="header-right">
+      <span class="quote-count" id="quote-count"></span>
+    </div>
+  </div>
+
+  <!-- Topic input -->
+  <div class="topic-section">
+    <div class="topic-label">compose topic</div>
+    <input type="text" class="topic-input" id="topic-input"
+      placeholder="what are you writing about?"
+      value="RAG chunking strategies: why simpler beats smarter" />
+    <div class="topic-hint">enter a topic and we'll pull exact quotes from your corpus</div>
+    <button class="fetch-btn" id="fetch-btn" onclick="fetchQuotes()">Pull quotes from corpus</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loading-spinner"></div>
+    <span class="loading-text">searching your corpus for relevant passages…</span>
+  </div>
+
+  <!-- Quotes -->
+  <div class="quotes-section" id="quotes-section" style="display:none;">
+    <div class="quotes-header">
+      <span class="quotes-title">exact quotes from your corpus</span>
+    </div>
+    <div id="quotes-container"></div>
+  </div>
+
+  <!-- Divider -->
+  <div class="section-divider" id="divider" style="display:none;">
+    <span>writing prompts</span>
+  </div>
+
+  <!-- Questions -->
+  <div class="questions-section" id="questions-section" style="display:none;">
+    <div class="questions-header">
+      <span class="questions-title">questions to guide your writing</span>
+      <button class="regenerate-btn" onclick="regenerateQuestions()">↻ new questions</button>
+    </div>
+    <div id="questions-container"></div>
+  </div>
+</div>
+
+<script>
+  function toggleTheme(){const h=document.documentElement;if(h.getAttribute('data-theme')==='dark'){h.removeAttribute('data-theme');localStorage.setItem('theme','light');}else{h.setAttribute('data-theme','dark');localStorage.setItem('theme','dark');}}
+  (function(){const s=localStorage.getItem('theme');if(s==='dark')document.documentElement.setAttribute('data-theme','dark');else if(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.setAttribute('data-theme','dark');})();
+
+  // Simulated corpus quotes
+  const quoteBank = [
+    {text:"Recursive character splitting at 400-512 tokens with 10-20% overlap works well for most text content and is the recommended starting point. Semantic chunking gives higher recall but costs more to run.",type:"article",source:"Best Chunking Strategies for RAG in 2026",origin:"firecrawl.dev",date:"Mar 29, 2026"},
+    {text:"FloTorch's February 2026 study compared seven chunking strategies using a rigorous methodology: equal context budgets, consistent retrieval methods, and standardized evaluation metrics across academic papers. Recursive character splitting at 512 tokens achieved the highest answer accuracy and retrieval F1 scores.",type:"article",source:"The 2026 RAG Performance Paradox",origin:"ragaboutit.com",date:"Feb 15, 2026"},
+    {text:"Semantic chunking produced fragments averaging just 43 tokens, and those fragments scored only 54% accuracy on end-to-end questions. Chunks that are too small lose context.",type:"article",source:"RAG Chunking Strategies: The 2026 Benchmark Guide",origin:"blog.premai.io",date:"Mar 18, 2026"},
+    {text:"Recursive splitting wins not because it's theoretically optimal but because semantic creates too many tiny fragments. The chunk needs to be useful to the reader (the LLM), not just findable by the retriever.",type:"takeaway",source:"My takeaway on chunking benchmarks",origin:"study session",date:"Mar 31, 2026"},
+    {text:"80% of RAG failures trace back to the ingestion and chunking layer, not the LLM. Most teams discover this after spending weeks tuning prompts and swapping models while their retrieval quietly returns the wrong context.",type:"article",source:"Building Production RAG",origin:"blog.premai.io",date:"Mar 20, 2026"},
+    {text:"The FloTorch benchmark result keeps surprising me — recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise.",type:"dialogue",source:"Chunking: the decision that silently makes or breaks everything",origin:"dialogue session",date:"Mar 31, 2026"},
+    {text:"A NAACL 2025 Findings paper found that fixed 200-word chunks matched or beat semantic chunking across retrieval and answer generation tasks, suggesting the computational overhead is not always justified.",type:"article",source:"Text Chunking Strategies for RAG",origin:"atlassc.net",date:"Mar 30, 2026"},
+    {text:"Start simple, measure, only add complexity when metrics demand it. Don't optimize for retrieval precision at the expense of generation quality.",type:"handwritten",source:"Handwritten note: chunking as the silent make-or-break",origin:"handwritten · 📷",date:"Mar 31, 2026"},
+  ];
+
+  // Simulated question banks
+  const questionBanks = [
+    [
+      {text:"What surprised you most about the benchmark results, and why did your intuition point the other way?",context:"Your dialogue note suggests you expected semantic chunking to win. Exploring that gap between intuition and data could be your opening hook."},
+      {text:"If someone is just starting a RAG project today, what's the one chunking decision they should make first and why?",context:"Your takeaway and handwritten note both converge on 'start with recursive 512.' What's the reasoning you'd give a beginner?"},
+      {text:"How does the chunking decision connect to the broader eval-first mindset you've been developing?",context:"Your handwritten note about building eval before generation and Hamel's field guide both argue for measurement over intuition. How does chunking fit that story?"},
+      {text:"What are the conditions under which semantic chunking would actually be the right choice?",context:"The benchmarks show recursive winning on average, but your corpus has notes about semantic chunking's higher recall. When is that tradeoff worth it?"},
+    ],
+    [
+      {text:"You wrote that the chunk needs to be useful to the reader (the LLM), not just findable by the retriever. Can you expand on what that means practically?",context:"This line from your takeaway is a strong thesis statement. What does it look like in practice when chunks are 'findable but not useful'?"},
+      {text:"What would you tell someone who says 'I'm using semantic chunking because it sounds smarter'?",context:"The counterintuitive nature of the benchmark results makes this a natural conversational hook for a blog post."},
+      {text:"How does chunk size interact with the LLM's context window and generation quality?",context:"Your corpus has the 43-token fragment finding and the 'lost in the middle' phenomenon. Connect these for the reader."},
+      {text:"What's your recommended starting configuration and how would you measure whether to change it?",context:"Practical advice grounded in your own experience building the notebook. What metrics would trigger a strategy change?"},
+    ],
+    [
+      {text:"If you had to write the headline that would make an AI engineer stop scrolling on LinkedIn, what would it be?",context:"The 'counterintuitive' angle is strong. Your data shows the simple approach beating the sophisticated one — that's inherently shareable."},
+      {text:"What's the one thing most RAG tutorials get wrong about chunking, based on what you've read?",context:"Multiple sources in your corpus point to tutorials stopping at 'chunk and embed' without discussing the impact on generation quality."},
+      {text:"How does your personal experience building the RAG notebook validate or challenge the benchmark findings?",context:"Your lived experience is what differentiates your blog post from yet another benchmark summary."},
+      {text:"What should the reader do after finishing your post? What's the specific actionable next step?",context:"Strong blog posts end with a clear call to action. Your 'start with 512, measure, iterate' framework is actionable."},
+    ]
+  ];
+
+  let currentQuestionBank = 0;
+  let activeQuotes = [];
+
+  function fetchQuotes(){
+    const topic = document.getElementById('topic-input').value.trim();
+    if(!topic) return;
+
+    const loading = document.getElementById('loading');
+    const quotesSection = document.getElementById('quotes-section');
+    const divider = document.getElementById('divider');
+    const questionsSection = document.getElementById('questions-section');
+
+    // Hide existing, show loading
+    quotesSection.style.display = 'none';
+    divider.style.display = 'none';
+    questionsSection.style.display = 'none';
+    loading.classList.add('active');
+
+    setTimeout(()=>{
+      loading.classList.remove('active');
+
+      // Show quotes
+      activeQuotes = [...quoteBank];
+      renderQuotes();
+      quotesSection.style.display = 'block';
+
+      // Show questions after a beat
+      setTimeout(()=>{
+        divider.style.display = 'flex';
+        questionsSection.style.display = 'block';
+        renderQuestions();
+      }, 400);
+    }, 1500);
+  }
+
+  function renderQuotes(){
+    const container = document.getElementById('quotes-container');
+    container.innerHTML = '';
+
+    activeQuotes.forEach((q, i) => {
+      const card = document.createElement('div');
+      card.className = 'quote-card';
+      card.style.animationDelay = `${i * 0.08}s`;
+      card.innerHTML = `
+        <button class="quote-remove" onclick="removeQuote(this, ${i})" title="Remove quote">✕</button>
+        <div class="quote-text">${q.text}</div>
+        <div class="quote-source">
+          <span class="quote-source-type">${q.type}</span>
+          <span class="quote-source-name">${q.source}</span>
+          <span class="quote-source-date">${q.date}</span>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    document.getElementById('quote-count').textContent = `${activeQuotes.length} quotes`;
+  }
+
+  function removeQuote(btn, index){
+    const card = btn.parentElement;
+    card.classList.add('removing');
+    setTimeout(()=>{
+      activeQuotes.splice(index, 1);
+      renderQuotes();
+    }, 350);
+  }
+
+  function renderQuestions(){
+    const container = document.getElementById('questions-container');
+    container.innerHTML = '';
+    const questions = questionBanks[currentQuestionBank % questionBanks.length];
+
+    questions.forEach((q, i) => {
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      card.style.animationDelay = `${i * 0.1}s`;
+      card.innerHTML = `
+        <button class="question-remove" onclick="removeQuestion(this)" title="Remove question">✕</button>
+        <div class="question-number">prompt ${i + 1}</div>
+        <div class="question-text">${q.text}</div>
+        <div class="question-context">${q.context}</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function removeQuestion(btn){
+    const card = btn.parentElement;
+    card.classList.add('removing');
+    setTimeout(()=> card.remove(), 350);
+  }
+
+  function regenerateQuestions(){
+    currentQuestionBank++;
+    const container = document.getElementById('questions-container');
+    // Fade out existing
+    Array.from(container.children).forEach((card, i) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(-8px)';
+      card.style.transition = 'all 0.25s ease';
+    });
+    setTimeout(()=> renderQuestions(), 300);
+  }
+
+  // Enter key on topic triggers fetch
+  document.getElementById('topic-input').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){e.preventDefault(); fetchQuotes();}
+  });
+
+  // Auto-fetch on load since there's a default topic
+  window.addEventListener('load', ()=> fetchQuotes());
+</script>
+</body>
+</html>

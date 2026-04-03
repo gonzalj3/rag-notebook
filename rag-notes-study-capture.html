@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Study Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f1eb;
+    --surface: #ffffff;
+    --surface-alt: #f9f7f3;
+    --surface-warm: #f0ece4;
+    --surface-hover: #eae6dd;
+    --border: #ddd8ce;
+    --border-subtle: #e8e4dc;
+    --border-focus: #c0b9ac;
+    --text-primary: #2a2824;
+    --text-secondary: #5a564e;
+    --text-muted: #958f83;
+    --text-faint: #c4bfb4;
+    --text-ghost: #ddd9d0;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.06);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.06);
+    --takeaway: #8b6b2e;
+    --takeaway-dim: rgba(139, 107, 46, 0.06);
+    --takeaway-border: rgba(139, 107, 46, 0.2);
+    --connection: #6a8a5a;
+    --connection-dim: rgba(106, 138, 90, 0.06);
+    --connection-border: rgba(106, 138, 90, 0.18);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.03);
+    --shadow-md: 0 2px 10px rgba(0,0,0,0.05);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.07);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+    --font-body: 'Lora', serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #111210;
+    --surface: #191a18;
+    --surface-alt: #1e1f1c;
+    --surface-warm: #1a1b17;
+    --surface-hover: #252622;
+    --border: #2e2f2b;
+    --border-subtle: #252622;
+    --border-focus: #4a4b45;
+    --text-primary: #d6d4ce;
+    --text-secondary: #a8a59c;
+    --text-muted: #6a665e;
+    --text-faint: #3e3d38;
+    --text-ghost: #2e2d29;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --takeaway: #d4a853;
+    --takeaway-dim: rgba(212, 168, 83, 0.07);
+    --takeaway-border: rgba(212, 168, 83, 0.2);
+    --connection: #8ab878;
+    --connection-dim: rgba(138, 184, 120, 0.07);
+    --connection-border: rgba(138, 184, 120, 0.15);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
+    --shadow-md: 0 2px 10px rgba(0,0,0,0.2);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 36px 20px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm); z-index: 50; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--border-focus); transform: scale(1.05); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  :root .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px; padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: var(--font-serif); font-weight: 300;
+    font-size: 1.15rem; letter-spacing: 0.02em; color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .header h1 em { color: var(--accent); font-style: normal; }
+  .header-sub {
+    font-family: var(--font-serif); font-size: 0.78rem;
+    font-style: italic; color: var(--text-muted);
+  }
+
+  /* States */
+  .state { display: none; }
+  .state.active { display: block; }
+
+  /* ======================== */
+  /* Source Selector           */
+  /* ======================== */
+  .source-section { margin-bottom: 24px; }
+
+  .source-label {
+    font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+
+  .source-selector {
+    display: flex; gap: 8px;
+  }
+
+  .source-input {
+    flex: 1;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-primary);
+    font-family: var(--font-serif); font-size: 0.88rem; font-weight: 400;
+    padding: 10px 14px; outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .source-input::placeholder { color: var(--text-ghost); font-style: italic; }
+  .source-input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  .source-recent {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+
+  .source-chip {
+    font-family: var(--font-mono); font-size: 0.58rem;
+    color: var(--text-muted); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 4px 12px; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .source-chip:hover {
+    border-color: var(--border-focus); color: var(--text-secondary);
+  }
+  .source-chip.selected {
+    border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
+  }
+
+  /* ======================== */
+  /* Camera / Batch Capture    */
+  /* ======================== */
+  .viewfinder {
+    position: relative; width: 100%; aspect-ratio: 4 / 3;
+    background: var(--surface-warm); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-lg); cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .viewfinder:hover { transform: scale(1.003); }
+
+  .viewfinder-inner {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+  }
+
+  .corner {
+    position: absolute; width: 28px; height: 28px;
+    border-color: var(--accent); border-style: solid; border-width: 0;
+    opacity: 0.35; transition: opacity 0.3s ease;
+  }
+  .viewfinder:hover .corner { opacity: 0.6; }
+  .corner.tl { top: 18px; left: 18px; border-top-width: 2px; border-left-width: 2px; border-radius: 3px 0 0 0; }
+  .corner.tr { top: 18px; right: 18px; border-top-width: 2px; border-right-width: 2px; border-radius: 0 3px 0 0; }
+  .corner.bl { bottom: 18px; left: 18px; border-bottom-width: 2px; border-left-width: 2px; border-radius: 0 0 0 3px; }
+  .corner.br { bottom: 18px; right: 18px; border-bottom-width: 2px; border-right-width: 2px; border-radius: 0 0 3px 0; }
+
+  .viewfinder-icon { font-size: 2.2rem; opacity: 0.2; }
+  .viewfinder-text {
+    font-family: var(--font-serif); font-size: 0.88rem;
+    font-style: italic; color: var(--text-muted); opacity: 0.7;
+  }
+  .viewfinder-hint {
+    font-size: 0.58rem; color: var(--text-faint);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  .file-input { display: none; }
+
+  /* Thumbnail strip */
+  .thumb-strip {
+    display: flex; gap: 8px; margin-top: 14px;
+    overflow-x: auto; padding: 4px 0;
+    scrollbar-width: none;
+  }
+  .thumb-strip::-webkit-scrollbar { display: none; }
+
+  .thumb {
+    position: relative; flex-shrink: 0;
+    width: 64px; height: 48px; border-radius: 6px;
+    overflow: hidden; border: 2px solid var(--border);
+    cursor: pointer; transition: border-color 0.2s ease;
+    opacity: 0; animation: thumb-in 0.3s ease-out forwards;
+  }
+  .thumb:hover { border-color: var(--border-focus); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb-number {
+    position: absolute; bottom: 2px; right: 4px;
+    font-size: 0.45rem; font-weight: 500;
+    color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .thumb-remove {
+    position: absolute; top: 2px; right: 3px;
+    font-size: 0.5rem; color: white; background: rgba(0,0,0,0.4);
+    border: none; border-radius: 50%; width: 14px; height: 14px;
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .thumb:hover .thumb-remove { display: flex; }
+
+  @keyframes thumb-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .capture-count {
+    font-size: 0.6rem; color: var(--text-muted);
+    text-align: center; margin-top: 10px; letter-spacing: 0.03em;
+  }
+
+  /* Review button */
+  .review-btn {
+    display: none; width: 100%; margin-top: 16px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+  }
+  .review-btn.visible { display: block; }
+  .review-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* ======================== */
+  /* Review State              */
+  /* ======================== */
+  .review-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-lg); margin-bottom: 16px;
+  }
+
+  /* Page nav within review */
+  .page-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface-alt); border-bottom: 1px solid var(--border);
+  }
+
+  .page-nav-btn {
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: none;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 12px; cursor: pointer; transition: all 0.2s ease;
+  }
+  .page-nav-btn:hover { border-color: var(--border-focus); color: var(--text-secondary); }
+  .page-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .page-indicator {
+    font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.06em;
+  }
+
+  /* Page image */
+  .review-photo {
+    position: relative; width: 100%; max-height: 220px;
+    overflow: hidden; background: var(--surface-warm);
+  }
+  .review-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-badge {
+    position: absolute; bottom: 10px; left: 14px;
+    font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: white; background: rgba(0,0,0,0.45);
+    padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px);
+  }
+
+  /* Extracted text */
+  .review-text-section { padding: 18px; border-top: 1px solid var(--border); }
+
+  .review-label {
+    font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .review-label .status-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--success); display: inline-block;
+  }
+
+  .extracted-text {
+    width: 100%; background: transparent; border: none;
+    color: var(--text-secondary); font-family: var(--font-serif);
+    font-size: 0.88rem; font-weight: 400;
+    line-height: 1.7; outline: none; resize: none;
+    min-height: 50px; transition: color 0.35s ease;
+  }
+
+  /* ======================== */
+  /* Takeaway — desirable      */
+  /* difficulty                */
+  /* ======================== */
+  .takeaway-section {
+    margin-top: 20px;
+    padding: 18px;
+    background: var(--takeaway-dim);
+    border: 1px solid var(--takeaway-border);
+    border-radius: var(--radius);
+    transition: background 0.35s ease;
+  }
+
+  .takeaway-label {
+    font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--takeaway); font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .takeaway-prompt {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: 0.78rem; color: var(--text-muted);
+    margin-bottom: 12px; line-height: 1.5;
+  }
+
+  .takeaway-input {
+    width: 100%; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); font-family: var(--font-body);
+    font-size: 0.9rem; font-weight: 400;
+    padding: 12px 14px; outline: none; resize: none;
+    line-height: 1.7; min-height: 60px; max-height: 160px;
+    transition: border-color 0.25s ease;
+  }
+  .takeaway-input:focus { border-color: var(--takeaway-border); }
+  .takeaway-input::placeholder {
+    color: var(--text-ghost); font-style: italic; font-family: var(--font-serif);
+  }
+
+  .takeaway-hint {
+    font-size: 0.52rem; color: var(--text-faint); margin-top: 8px;
+    letter-spacing: 0.02em; font-family: var(--font-serif); font-style: italic;
+  }
+
+  /* Connection — only after takeaway */
+  .connection-section {
+    margin-top: 16px;
+    opacity: 0; max-height: 0; overflow: hidden;
+    transition: opacity 0.6s ease, max-height 0.6s ease;
+  }
+  .connection-section.visible { opacity: 1; max-height: 300px; }
+
+  .connection-item {
+    padding: 14px 16px;
+    background: var(--connection-dim);
+    border: 1px solid var(--connection-border);
+    border-radius: 8px; margin-bottom: 8px;
+  }
+
+  .connection-label {
+    font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--connection); font-weight: 500; margin-bottom: 6px;
+  }
+
+  .connection-text {
+    font-family: var(--font-serif); font-size: 0.8rem; font-style: italic;
+    line-height: 1.6; color: var(--text-secondary);
+  }
+
+  .connection-source {
+    font-family: var(--font-mono); font-size: 0.55rem;
+    color: var(--text-faint); margin-top: 6px; letter-spacing: 0.03em;
+  }
+
+  /* Tags */
+  .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    margin-top: 16px; min-height: 24px;
+  }
+  .tag-label {
+    font-size: 0.55rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted); margin-right: 4px;
+  }
+  .tag-placeholder {
+    font-size: 0.6rem; font-style: italic; font-family: var(--font-serif);
+    color: var(--text-faint); opacity: 0.6;
+  }
+  .tag {
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface-alt);
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease; user-select: none;
+    opacity: 0; transform: translateY(4px) scale(0.92);
+    animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag.auto { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag.auto:hover { background: transparent; color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+  .tag.dismissed { opacity: 0.3; text-decoration: line-through; }
+  .tag-add {
+    padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-faint); background: transparent;
+    border: 1px dashed var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color: var(--border-focus); color: var(--text-muted); border-style: solid; }
+  @keyframes tag-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Save button */
+  .save-btn {
+    width: 100%; margin-top: 20px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .save-btn:active { transform: scale(0.99); }
+  .save-btn.saved { border-color: var(--success); color: var(--success); background: var(--success-dim); pointer-events: none; }
+
+  .back-btn {
+    display: block; margin: 12px auto 0 auto;
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-faint); background: none; border: none;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+  .back-btn:hover { color: var(--text-muted); }
+
+  /* Scan animation */
+  .scan-line {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 20px 4px rgba(124, 92, 191, 0.12);
+    animation: scan-sweep 1.8s ease-in-out forwards; opacity: 0;
+  }
+  @keyframes scan-sweep { 0%{top:0;opacity:0;} 5%{opacity:1;} 90%{opacity:1;} 100%{top:100%;opacity:0;} }
+
+  /* Ripple */
+  .ripple-container { position:fixed; top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100; }
+  .ripple {
+    position:absolute; border-radius:50%; border:1px solid var(--success);
+    opacity:0; animation: ripple-out 1.2s ease-out forwards;
+  }
+  @keyframes ripple-out { 0%{width:0;height:0;opacity:0.3;} 100%{width:350px;height:350px;opacity:0;} }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 16px; }
+    .source-input, .takeaway-input, .extracted-text { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+  <div class="header">
+    <h1>capture <em>·</em> study</h1>
+    <div class="header-sub">photograph books &amp; articles, write what you learned</div>
+  </div>
+
+  <!-- STATE 1: Source + Batch Capture -->
+  <div class="state active" id="state-capture">
+
+    <div class="source-section">
+      <div class="source-label">source</div>
+      <div class="source-selector">
+        <input type="text" class="source-input" id="source-input"
+          placeholder="book title, article, paper…" />
+      </div>
+      <div class="source-recent" id="source-recent">
+        <span class="source-chip" onclick="selectSource(this)">AI Engineering — Chip Huyen</span>
+        <span class="source-chip" onclick="selectSource(this)">Beyond Naive RAG — Hamel Husain</span>
+        <span class="source-chip" onclick="selectSource(this)">Designing Data-Intensive Apps</span>
+      </div>
+    </div>
+
+    <div class="viewfinder" onclick="document.getElementById('file-input').click()">
+      <div class="viewfinder-inner">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="viewfinder-icon">📖</div>
+        <div class="viewfinder-text">photograph a page</div>
+        <div class="viewfinder-hint">capture multiple pages in sequence</div>
+      </div>
+    </div>
+
+    <input type="file" class="file-input" id="file-input" accept="image/*" capture="environment" onchange="addPage(this)" />
+
+    <div class="thumb-strip" id="thumb-strip"></div>
+    <div class="capture-count" id="capture-count"></div>
+
+    <button class="review-btn" id="review-btn" onclick="startReview()">
+      Review &amp; annotate
+    </button>
+  </div>
+
+  <!-- STATE 2: Review -->
+  <div class="state" id="state-review">
+
+    <div class="review-card" id="review-card">
+      <div class="page-nav">
+        <button class="page-nav-btn" id="prev-btn" onclick="navPage(-1)">← prev</button>
+        <span class="page-indicator" id="page-indicator">page 1 of 1</span>
+        <button class="page-nav-btn" id="next-btn" onclick="navPage(1)">next →</button>
+      </div>
+
+      <div class="review-photo" id="review-photo">
+        <img id="review-image" src="" alt="Captured page" />
+        <div class="scan-line" id="scan-line"></div>
+        <span class="photo-badge" id="photo-badge">page 1 · original preserved</span>
+      </div>
+
+      <div class="review-text-section">
+        <div class="review-label">
+          <span class="status-dot"></span>
+          extracted text
+        </div>
+        <textarea class="extracted-text" id="extracted-text"
+          placeholder="OCR text will appear here…"></textarea>
+      </div>
+    </div>
+
+    <!-- The desirable difficulty -->
+    <div class="takeaway-section">
+      <div class="takeaway-label">✍ your takeaway</div>
+      <div class="takeaway-prompt">
+        What did you learn from this? Put it in your own words — the act of reformulating is where learning happens.
+      </div>
+      <textarea class="takeaway-input" id="takeaway-input"
+        placeholder="in my own words, the key insight here is…"
+        rows="2"></textarea>
+      <div class="takeaway-hint">this gets embedded as your interpretation, separate from the source text</div>
+    </div>
+
+    <!-- Connection — only after takeaway is written -->
+    <div class="connection-section" id="connection-section">
+      <div class="connection-item">
+        <div class="connection-label">🧵 from your corpus</div>
+        <div class="connection-text" id="connection-text">
+          Your dialogue note from 2 days ago about hybrid retrieval — "BM25 and vector search fail in complementary ways" — seems to connect to what this passage is describing.
+        </div>
+        <div class="connection-source">from: dialogue note · 2 days ago · tagged: rag</div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="tag-row" id="tag-row">
+      <span class="tag-label">tags</span>
+      <span class="tag-placeholder">auto-generated</span>
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="saveStudy()">
+      Save to corpus
+    </button>
+    <button class="back-btn" onclick="backToCapture()">← capture more pages</button>
+  </div>
+</div>
+
+<div class="ripple-container" id="ripple-container"></div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+
+  // State
+  let pages = []; // { imageData, ocrText }
+  let currentPage = 0;
+
+  function showState(name) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(`state-${name}`).classList.add('active');
+  }
+
+  // Source selection
+  function selectSource(chip) {
+    document.querySelectorAll('.source-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    document.getElementById('source-input').value = chip.textContent;
+  }
+
+  // Page capture
+  function addPage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const pageData = { imageData: e.target.result, ocrText: '' };
+      pages.push(pageData);
+      addThumb(pages.length - 1, e.target.result);
+      updateCaptureCount();
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  function addThumb(index, imgData) {
+    const strip = document.getElementById('thumb-strip');
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    thumb.style.animationDelay = '0s';
+    thumb.innerHTML = `
+      <img src="${imgData}" alt="Page ${index + 1}" />
+      <span class="thumb-number">${index + 1}</span>
+      <button class="thumb-remove" onclick="event.stopPropagation();removePage(${index})">×</button>
+    `;
+    thumb.onclick = function() { /* could preview */ };
+    strip.appendChild(thumb);
+    strip.scrollLeft = strip.scrollWidth;
+  }
+
+  function removePage(index) {
+    pages.splice(index, 1);
+    rebuildThumbs();
+    updateCaptureCount();
+  }
+
+  function rebuildThumbs() {
+    const strip = document.getElementById('thumb-strip');
+    strip.innerHTML = '';
+    pages.forEach((p, i) => addThumb(i, p.imageData));
+  }
+
+  function updateCaptureCount() {
+    const count = pages.length;
+    document.getElementById('capture-count').textContent =
+      count === 0 ? '' :
+      count === 1 ? '1 page captured' :
+      `${count} pages captured`;
+    document.getElementById('review-btn').classList.toggle('visible', count > 0);
+  }
+
+  // Simulated OCR texts
+  const sampleOCR = [
+    "The most common mistake in building RAG systems is treating chunking as a solved problem. In practice, the choice of chunk size, overlap, and splitting strategy has more impact on end-to-end answer quality than the choice of embedding model or LLM. Teams that skip rigorous evaluation of their chunking pipeline pay for it later in retrieval failures they can't diagnose.",
+    "Evaluation should not be an afterthought. The teams that ship reliable AI products build their evaluation infrastructure first, before they build the generation layer. This inverts the typical development workflow but produces dramatically better outcomes. You define what 'good' looks like, measure your current gap, and engineer toward closing it.",
+    "Hybrid retrieval combines sparse (keyword) and dense (vector) search to compensate for each method's blind spots. BM25 excels at exact term matching — product codes, error messages, specific names — while dense retrieval captures semantic meaning across paraphrases and synonyms. Production systems increasingly default to running both in parallel with a fusion step."
+  ];
+
+  // Review state
+  function startReview() {
+    if (pages.length === 0) return;
+    currentPage = 0;
+
+    // Assign simulated OCR to pages that don't have it
+    pages.forEach((p, i) => {
+      if (!p.ocrText) p.ocrText = sampleOCR[i % sampleOCR.length];
+    });
+
+    showState('review');
+    renderReviewPage();
+  }
+
+  function renderReviewPage() {
+    const page = pages[currentPage];
+
+    document.getElementById('review-image').src = page.imageData;
+    document.getElementById('photo-badge').textContent =
+      `page ${currentPage + 1} of ${pages.length} · original preserved`;
+    document.getElementById('page-indicator').textContent =
+      `page ${currentPage + 1} of ${pages.length}`;
+
+    document.getElementById('prev-btn').disabled = currentPage === 0;
+    document.getElementById('next-btn').disabled = currentPage === pages.length - 1;
+
+    // Scan animation
+    const line = document.getElementById('scan-line');
+    line.style.animation = 'none';
+    line.offsetHeight;
+    line.style.animation = 'scan-sweep 1.8s ease-in-out forwards';
+
+    // Type in OCR text
+    const textArea = document.getElementById('extracted-text');
+    textArea.value = '';
+    let i = 0;
+    const text = page.ocrText;
+    clearInterval(window._ocrInterval);
+    window._ocrInterval = setInterval(() => {
+      if (i < text.length) {
+        textArea.value += text[i]; i++;
+        textArea.style.height = 'auto';
+        textArea.style.height = textArea.scrollHeight + 'px';
+      } else {
+        clearInterval(window._ocrInterval);
+        autoTagFromContent(text);
+      }
+    }, 8);
+
+    // Reset connection visibility
+    document.getElementById('connection-section').classList.remove('visible');
+  }
+
+  function navPage(dir) {
+    const newPage = currentPage + dir;
+    if (newPage < 0 || newPage >= pages.length) return;
+    currentPage = newPage;
+    renderReviewPage();
+  }
+
+  // Takeaway triggers connections
+  const takeawayInput = document.getElementById('takeaway-input');
+  let connectionTimeout = null;
+
+  takeawayInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+
+    const words = this.value.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length >= 8) {
+      clearTimeout(connectionTimeout);
+      connectionTimeout = setTimeout(() => {
+        document.getElementById('connection-section').classList.add('visible');
+      }, 1000);
+    }
+  });
+
+  // Auto-resize textareas
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      if (this.id !== 'takeaway-input') {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+      }
+    });
+  });
+
+  // Tags
+  const tagDictionary = {
+    'rag': ['rag','retrieval','chunking','chunk','embedding','vector','bm25','sparse','dense','rerank','hybrid','corpus','ingest'],
+    'evals': ['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','measure','quality','error'],
+    'infra': ['deploy','docker','server','cloud','gpu','mlops','inference','latency','production','api','pipeline'],
+    'learning': ['learn','study','insight','principle','intuition','understand','realize','mistake','practice'],
+    'llm': ['llm','language model','gpt','claude','qwen','transformer','token','context window','prompt','generation']
+  };
+
+  function autoTagFromContent(text) {
+    const lower = text.toLowerCase();
+    let matches = [];
+    for (const [tag, keywords] of Object.entries(tagDictionary)) {
+      let score = 0;
+      for (const kw of keywords) { if (lower.includes(kw)) score++; }
+      if (score > 0) matches.push({ tag, score });
+    }
+    matches.sort((a, b) => b.score - a.score);
+    const tags = matches.slice(0, 3).map(m => m.tag);
+    if (tags.length) showAutoTags(tags);
+  }
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span>';
+    tags.forEach((tagName, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag auto'; tag.textContent = tagName;
+      tag.style.animationDelay = `${i * 0.1}s`;
+      tag.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+      row.appendChild(tag);
+    });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'tag-add'; addBtn.textContent = '+ add';
+    addBtn.style.animationDelay = `${tags.length * 0.1}s`;
+    addBtn.onclick = function() {
+      const name = prompt('Tag name:');
+      if (name && name.trim()) {
+        const t = document.createElement('span');
+        t.className = 'tag auto'; t.textContent = name.trim().toLowerCase();
+        t.style.animation = 'tag-appear 0.35s ease-out forwards';
+        t.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+        row.insertBefore(t, addBtn);
+      }
+    };
+    row.appendChild(addBtn);
+  }
+
+  // Save
+  function saveStudy() {
+    const btn = document.getElementById('save-btn');
+    btn.textContent = 'Saving…';
+
+    const rect = btn.getBoundingClientRect();
+    const c = document.getElementById('ripple-container');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (rect.left + rect.width / 2 - 175) + 'px';
+    r.style.top = (rect.top + rect.height / 2 - 175) + 'px';
+    c.appendChild(r);
+    setTimeout(() => r.remove(), 1200);
+
+    setTimeout(() => {
+      btn.textContent = `Saved · ${pages.length} page${pages.length > 1 ? 's' : ''} + takeaway`;
+      btn.classList.add('saved');
+
+      setTimeout(() => {
+        btn.textContent = 'Save to corpus';
+        btn.classList.remove('saved');
+        resetAll();
+      }, 1800);
+    }, 600);
+  }
+
+  function backToCapture() {
+    showState('capture');
+  }
+
+  function resetAll() {
+    pages = [];
+    currentPage = 0;
+    document.getElementById('thumb-strip').innerHTML = '';
+    document.getElementById('capture-count').textContent = '';
+    document.getElementById('review-btn').classList.remove('visible');
+    document.getElementById('takeaway-input').value = '';
+    document.getElementById('takeaway-input').style.height = 'auto';
+    document.getElementById('extracted-text').value = '';
+    document.getElementById('connection-section').classList.remove('visible');
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span><span class="tag-placeholder">auto-generated</span>';
+    showState('capture');
+  }
+
+  // Drag & drop on viewfinder
+  const vf = document.querySelector('.viewfinder');
+  vf.addEventListener('dragover', e => { e.preventDefault(); vf.style.borderColor = 'var(--accent)'; });
+  vf.addEventListener('dragleave', () => { vf.style.borderColor = 'var(--border)'; });
+  vf.addEventListener('drop', e => {
+    e.preventDefault(); vf.style.borderColor = 'var(--border)';
+    Array.from(e.dataTransfer.files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          pages.push({ imageData: ev.target.result, ocrText: '' });
+          addThumb(pages.length - 1, ev.target.result);
+          updateCaptureCount();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  });
+</script>
+</body>
+</html>

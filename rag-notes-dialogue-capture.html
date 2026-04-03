@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Dialogue Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --surface-alt: #f5f3ef;
+    --surface-hover: #edeae4;
+    --border: #e2dfd8;
+    --border-subtle: #eceae5;
+    --border-focus: #c5c0b6;
+    --text-primary: #2a2824;
+    --text-secondary: #5a564e;
+    --text-muted: #958f83;
+    --text-faint: #c4bfb4;
+    --text-ghost: #ddd9d0;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.06);
+    --resonance: #6a8a5a;
+    --resonance-dim: rgba(106, 138, 90, 0.06);
+    --resonance-border: rgba(106, 138, 90, 0.18);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.06);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.03);
+    --shadow-md: 0 2px 10px rgba(0,0,0,0.04);
+    --radius: 10px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+    --font-body: 'Lora', serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #111210;
+    --surface: #191a18;
+    --surface-alt: #1e1f1c;
+    --surface-hover: #252622;
+    --border: #2e2f2b;
+    --border-subtle: #252622;
+    --border-focus: #4a4b45;
+    --text-primary: #d6d4ce;
+    --text-secondary: #a8a59c;
+    --text-muted: #6a665e;
+    --text-faint: #3e3d38;
+    --text-ghost: #2e2d29;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --resonance: #8ab878;
+    --resonance-dim: rgba(138, 184, 120, 0.07);
+    --resonance-border: rgba(138, 184, 120, 0.15);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
+    --shadow-md: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 20px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .container { width: 100%; max-width: 680px; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm); z-index: 50; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--border-focus); transform: scale(1.05); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  :root .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* Header — minimal, stays out of the way */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; padding: 0 4px;
+  }
+
+  .header-left {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .header h1 {
+    font-family: var(--font-serif); font-weight: 300;
+    font-size: 0.95rem; letter-spacing: 0.02em; color: var(--text-muted);
+  }
+  .header h1 em { color: var(--accent); font-style: normal; }
+
+  .save-status {
+    font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-faint); transition: color 0.3s ease;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .save-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--text-faint); transition: background 0.3s ease;
+  }
+
+  .save-status.saving .save-dot { background: var(--accent); animation: pulse-dot 1s ease-in-out infinite; }
+  .save-status.saved { color: var(--success); }
+  .save-status.saved .save-dot { background: var(--success); }
+
+  @keyframes pulse-dot { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+
+  .header-right {
+    display: flex; align-items: center; gap: 12px;
+    margin-right: 36px;
+  }
+
+  .word-count {
+    font-size: 0.6rem; color: var(--text-faint); letter-spacing: 0.04em;
+  }
+
+  .session-time {
+    font-size: 0.6rem; color: var(--text-faint); letter-spacing: 0.04em;
+  }
+
+  /* Close session button — appears below editor after content exists */
+  .close-session {
+    display: block;
+    margin: 20px auto 0 auto;
+    font-family: var(--font-mono); font-size: 0.58rem;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-faint); background: none;
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 6px 18px; cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0; pointer-events: none;
+  }
+
+  .close-session.visible {
+    opacity: 1; pointer-events: auto;
+  }
+
+  .close-session:hover {
+    color: var(--text-muted); border-color: var(--border);
+    background: var(--surface-alt);
+  }
+
+  .close-session.closing {
+    color: var(--success); border-color: var(--success);
+    background: var(--success-dim); pointer-events: none;
+  }
+
+  .close-hint {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 0.55rem;
+    color: var(--text-faint); letter-spacing: 0.04em;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    opacity: 0; transition: opacity 0.4s ease;
+    pointer-events: none; z-index: 40;
+  }
+
+  .close-hint kbd {
+    display: inline-block; padding: 1px 4px;
+    background: var(--surface-alt); border: 1px solid var(--border);
+    border-radius: 3px; font-family: var(--font-mono); font-size: 0.5rem;
+    margin: 0 1px;
+  }
+
+  .close-hint.visible { opacity: 1; }
+
+  /* ======================== */
+  /* Writing Surface          */
+  /* ======================== */
+  .writing-surface {
+    margin-top: 24px;
+    min-height: 45vh;
+    position: relative;
+  }
+
+  .editor {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 400;
+    line-height: 1.85;
+    padding: 0 4px;
+    outline: none;
+    resize: none;
+    min-height: 45vh;
+    overflow: hidden;
+    transition: color 0.35s ease;
+  }
+
+  .editor::placeholder {
+    color: var(--text-ghost);
+    font-style: italic;
+  }
+
+  /* Typing indicator line — shows writing is being tracked */
+  .writing-indicator {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin-top: 16px;
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    transform-origin: left;
+  }
+
+  .writing-indicator.active {
+    opacity: 0.3;
+    animation: breathe 2s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scaleX(0.3); opacity: 0.15; }
+    50% { transform: scaleX(1); opacity: 0.3; }
+  }
+
+  /* ======================== */
+  /* Resonance Panel          */
+  /* ======================== */
+  .resonance-panel {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-subtle);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .resonance-panel.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .resonance-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .resonance-icon {
+    font-size: 0.75rem; opacity: 0.6;
+  }
+
+  .resonance-title {
+    font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--resonance); font-weight: 500;
+  }
+
+  .resonance-subtitle {
+    font-size: 0.55rem; color: var(--text-faint); letter-spacing: 0.03em;
+    margin-left: auto;
+    font-family: var(--font-serif); font-style: italic;
+  }
+
+  .resonance-item {
+    padding: 14px 16px;
+    background: var(--resonance-dim);
+    border: 1px solid var(--resonance-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: default;
+    transition: background 0.2s ease;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: res-appear 0.5s ease-out forwards;
+  }
+
+  .resonance-item:hover {
+    background: var(--surface-hover);
+  }
+
+  @keyframes res-appear {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .resonance-item-type {
+    font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .resonance-item-type .type-badge {
+    font-size: 0.45rem; padding: 1px 5px;
+    background: var(--surface); border-radius: 3px;
+    color: var(--text-faint);
+  }
+
+  .resonance-item-text {
+    font-family: var(--font-serif);
+    font-size: 0.82rem; font-style: italic;
+    line-height: 1.6; color: var(--text-secondary);
+  }
+
+  .resonance-item-source {
+    font-family: var(--font-mono);
+    font-size: 0.55rem; color: var(--text-faint);
+    margin-top: 8px; letter-spacing: 0.03em;
+  }
+
+  .resonance-dismiss {
+    font-size: 0.5rem; color: var(--text-faint);
+    background: none; border: none; cursor: pointer;
+    float: right; margin-top: -2px; padding: 2px 4px;
+    letter-spacing: 0.04em;
+    transition: color 0.2s ease;
+  }
+  .resonance-dismiss:hover { color: var(--text-muted); }
+
+  /* ======================== */
+  /* Tags & Meta (bottom)     */
+  /* ======================== */
+  .note-meta {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .note-meta.visible { opacity: 1; }
+
+  .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    min-height: 24px;
+  }
+  .tag-label {
+    font-size: 0.55rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-faint); margin-right: 4px;
+  }
+  .tag {
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface-alt);
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease; user-select: none;
+    opacity: 0; transform: translateY(4px) scale(0.92);
+    animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag.auto { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag.auto:hover { background: transparent; color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+  .tag.dismissed { opacity: 0.3; text-decoration: line-through; }
+  .tag-add {
+    padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-faint); background: transparent;
+    border: 1px dashed var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color: var(--border-focus); color: var(--text-muted); border-style: solid; }
+  @keyframes tag-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Session dividers */
+  .session-divider {
+    display: flex; align-items: center; gap: 14px;
+    margin: 36px 0 32px 0;
+    padding: 0 4px;
+  }
+
+  .session-divider::before,
+  .session-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: var(--border);
+  }
+
+  .session-divider-label {
+    font-family: var(--font-mono);
+    font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-faint); white-space: nowrap;
+    padding: 0 2px;
+  }
+
+  /* Past session text (read-only) */
+  .past-session-text {
+    font-family: var(--font-body);
+    font-size: 1.05rem; font-weight: 400;
+    line-height: 1.85;
+    color: var(--text-muted);
+    padding: 0 4px;
+    transition: color 0.35s ease;
+  }
+
+  .past-session-text:hover {
+    color: var(--text-secondary);
+  }
+
+  /* Previous sessions */
+  .previous-notes {
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .previous-header {
+    font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 16px;
+  }
+
+  .previous-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  .previous-item:hover { opacity: 0.7; }
+
+  .previous-item-title {
+    font-family: var(--font-body);
+    font-size: 0.88rem; font-weight: 400;
+    color: var(--text-secondary); line-height: 1.4;
+    margin-bottom: 4px;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .previous-item-meta {
+    font-size: 0.55rem; color: var(--text-faint); letter-spacing: 0.03em;
+    display: flex; gap: 10px;
+  }
+
+  .previous-item-excerpt {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: 0.75rem; color: var(--text-muted);
+    margin-top: 4px; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 20px 16px; }
+    .editor { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>dialogue <em>·</em> write</h1>
+      <div class="save-status" id="save-status">
+        <span class="save-dot"></span>
+        <span id="save-text">saved</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="word-count" id="word-count"></span>
+      <span class="session-time" id="session-time">0m</span>
+    </div>
+  </div>
+
+  <!-- Past sessions (read-only, visible for continuity) -->
+  <div class="past-sessions" id="past-sessions">
+
+    <div class="past-session-text">The FloTorch benchmark result keeps surprising me — recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise. The fragments semantic chunking produces are too small — averaging 43 tokens — and the LLM doesn't get enough context per chunk to reason well. Maybe the lesson is: don't optimize for retrieval precision at the expense of generation quality. The chunk needs to be useful to the reader (the LLM), not just findable by the retriever.</div>
+
+    <div class="session-divider">
+      <span class="session-divider-label">Mar 31 · 6 min session · 276 words</span>
+    </div>
+
+    <div class="past-session-text">Evals are the product development process, not a QA step. Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it — you define what "good" looks like, measure where you are, and then engineer toward the gap. The eval system IS the development environment. Which means for my notebook, I should build the eval pipeline before I build the generation layer. Start with: can I retrieve the right chunks for a set of test queries? Measure that. Only then worry about what the LLM does with them.</div>
+
+    <div class="session-divider">
+      <span class="session-divider-label">Apr 1 · 14 min session · 518 words</span>
+    </div>
+
+    <div class="past-session-text">The fundamental insight about hybrid retrieval is that BM25 and vector search fail in complementary ways. When I search for "RAGAS faithfulness metric" I need exact keyword match — dense retrieval might return chunks about evaluation generally but miss the specific framework. When I search for "how to know if my retrieval is working" I need semantic understanding — BM25 won't match because none of those keywords appear in the relevant documents. My notebook will have both types of queries. Technical terms I remember exactly, and fuzzy conceptual questions where I remember the idea but not the words.</div>
+
+    <div class="session-divider">
+      <span class="session-divider-label">today · new session</span>
+    </div>
+  </div>
+
+  <!-- Writing surface (current session) -->
+  <div class="writing-surface">
+    <textarea
+      class="editor"
+      id="editor"
+      placeholder="start writing… your thoughts are saved as you type"
+    ></textarea>
+    <div class="writing-indicator" id="writing-indicator"></div>
+  </div>
+
+  <button class="close-session" id="close-session" onclick="closeSession()">end session</button>
+
+  <!-- Resonance panel — surfaces connections as you write -->
+  <div class="resonance-panel" id="resonance-panel">
+    <div class="resonance-header">
+      <span class="resonance-icon">◌</span>
+      <span class="resonance-title">Resonances from your corpus</span>
+      <span class="resonance-subtitle">surfaced while you write</span>
+    </div>
+    <div id="resonance-items"></div>
+  </div>
+
+  <!-- Auto-generated meta -->
+  <div class="note-meta" id="note-meta">
+    <div class="tag-row" id="tag-row">
+      <span class="tag-label">tags</span>
+    </div>
+  </div>
+
+  <!-- Previous writing sessions -->
+  <div class="previous-notes">
+    <div class="previous-header">Recent writing sessions</div>
+
+    <div class="previous-item">
+      <div class="previous-item-title">Why hybrid retrieval is non-negotiable for my notebook</div>
+      <div class="previous-item-meta">
+        <span>342 words · 8 min session</span>
+        <span>tagged: rag, infra</span>
+        <span>2 days ago</span>
+      </div>
+      <div class="previous-item-excerpt">The fundamental insight is that BM25 and vector search fail in complementary ways. When I search for "RAGAS faithfulness metric" I need exact keyword match. When I search for "how to know if my retrieval is working" I need semantic…</div>
+    </div>
+
+    <div class="previous-item">
+      <div class="previous-item-title">Evals are the product development process, not a QA step</div>
+      <div class="previous-item-meta">
+        <span>518 words · 14 min session</span>
+        <span>tagged: evals, learning</span>
+        <span>4 days ago</span>
+      </div>
+      <div class="previous-item-excerpt">Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it…</div>
+    </div>
+
+    <div class="previous-item">
+      <div class="previous-item-title">Chunking: the decision that silently makes or breaks everything</div>
+      <div class="previous-item-meta">
+        <span>276 words · 6 min session</span>
+        <span>tagged: rag</span>
+        <span>1 week ago</span>
+      </div>
+      <div class="previous-item-excerpt">The FloTorch benchmark result keeps surprising me — recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says…</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="close-hint" id="close-hint"><kbd>⌘</kbd><kbd>.</kbd> to end session</div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+
+  // Editor auto-resize
+  const editor = document.getElementById('editor');
+  editor.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+    onTextChange();
+  });
+
+  // Writing state tracking
+  let saveTimeout = null;
+  let resonanceTimeout = null;
+  let tagTimeout = null;
+  let lastResonanceText = '';
+  let sessionStart = Date.now();
+  let wordThresholdForResonance = 20;
+
+  function onTextChange() {
+    const text = editor.value;
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+
+    // Triple newline detection — close session naturally
+    if (text.length > 3 && words.length >= 3 && text.endsWith('\n\n\n')) {
+      // Strip the trailing newlines before closing
+      editor.value = text.replace(/\n+$/, '');
+      closeSession();
+      return;
+    }
+
+    // Word count
+    document.getElementById('word-count').textContent =
+      words.length > 0 ? `${words.length} words` : '';
+
+    // Writing indicator
+    const indicator = document.getElementById('writing-indicator');
+    indicator.classList.add('active');
+    clearTimeout(window._indicatorTimeout);
+    window._indicatorTimeout = setTimeout(() => indicator.classList.remove('active'), 2000);
+
+    // Autosave simulation
+    const status = document.getElementById('save-status');
+    const statusText = document.getElementById('save-text');
+    status.className = 'save-status saving';
+    statusText.textContent = 'saving…';
+
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      status.className = 'save-status saved';
+      statusText.textContent = 'saved';
+      setTimeout(() => {
+        status.className = 'save-status';
+        statusText.textContent = 'saved';
+      }, 2000);
+    }, 800);
+
+    // Trigger resonance after enough words and a pause
+    if (words.length >= wordThresholdForResonance) {
+      clearTimeout(resonanceTimeout);
+      resonanceTimeout = setTimeout(() => {
+        const currentText = editor.value.trim();
+        if (currentText !== lastResonanceText && currentText.length > 50) {
+          lastResonanceText = currentText;
+          surfaceResonances(currentText);
+          wordThresholdForResonance = words.length + 30; // next trigger after 30 more words
+        }
+      }, 1500);
+    }
+
+    // Auto-tag after meaningful content
+    if (words.length >= 10) {
+      clearTimeout(tagTimeout);
+      tagTimeout = setTimeout(() => {
+        const tags = classifyContent(text);
+        if (tags.length) showAutoTags(tags);
+        document.getElementById('note-meta').classList.add('visible');
+      }, 2000);
+    }
+
+    // Show close button and reset inactivity timer
+    showCloseButton();
+    resetInactivityTimer();
+  }
+
+  // Session timer
+  setInterval(() => {
+    const elapsed = Math.floor((Date.now() - sessionStart) / 60000);
+    document.getElementById('session-time').textContent =
+      elapsed < 1 ? '<1m' : `${elapsed}m`;
+  }, 10000);
+
+  // Resonance system (simulated corpus search)
+  const corpusItems = [
+    {
+      type: 'handwritten note',
+      age: '5 days ago',
+      tags: 'rag',
+      text: 'Recursive splitting at 512 tokens — the simplest approach wins. Not because it\'s theoretically optimal but because semantic chunking creates too many tiny fragments.',
+      triggers: ['chunk', 'split', 'recursive', '512', 'semantic', 'fragment']
+    },
+    {
+      type: 'article',
+      source: 'hamel.dev',
+      age: '1 week ago',
+      tags: 'evals',
+      text: 'Teams that succeed barely talk about tools. They obsess over measurement and iteration. Error analysis is the single most valuable activity in AI development.',
+      triggers: ['eval', 'metric', 'measure', 'error', 'iterate', 'improve', 'quality']
+    },
+    {
+      type: 'tweet capture',
+      age: '3 days ago',
+      tags: 'rag, infra',
+      text: '80% of RAG failures trace back to the ingestion and chunking layer, not the LLM. Most teams discover this after spending weeks tuning prompts.',
+      triggers: ['rag', 'fail', 'ingest', 'chunk', 'prompt', 'retrieval', 'pipeline']
+    },
+    {
+      type: 'your note',
+      age: '4 days ago',
+      tags: 'evals, learning',
+      text: 'Hamel\'s core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see.',
+      triggers: ['hamel', 'build', 'measure', 'eval', 'team', 'product', 'process']
+    },
+    {
+      type: 'article',
+      source: 'blog.premai.io',
+      age: '1 week ago',
+      tags: 'rag',
+      text: 'Your query must use the same embedding model as your indexed chunks. If you upgrade your embedding model, you must re-embed your entire corpus.',
+      triggers: ['embed', 'model', 'index', 'corpus', 'vector', 'migration', 'upgrade']
+    },
+    {
+      type: 'article',
+      source: 'arxiv.org',
+      age: '2 weeks ago',
+      tags: 'evals',
+      text: 'RAGAS provides reference-free evaluation — measuring faithfulness, answer relevancy, and context relevancy without ground truth annotations.',
+      triggers: ['ragas', 'faithfulness', 'relevancy', 'context', 'ground truth', 'reference']
+    },
+    {
+      type: 'your note',
+      age: '2 days ago',
+      tags: 'rag',
+      text: 'The fundamental insight is that BM25 and vector search fail in complementary ways. Exact terms need keyword match. Conceptual queries need semantic search. My notebook needs both.',
+      triggers: ['bm25', 'vector', 'hybrid', 'keyword', 'semantic', 'search', 'complement']
+    }
+  ];
+
+  function surfaceResonances(text) {
+    const lower = text.toLowerCase();
+    let scored = corpusItems.map(item => {
+      let score = 0;
+      item.triggers.forEach(t => {
+        if (lower.includes(t)) score++;
+      });
+      return { ...item, score };
+    }).filter(item => item.score > 0);
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 2);
+
+    if (top.length === 0) return;
+
+    const panel = document.getElementById('resonance-panel');
+    const container = document.getElementById('resonance-items');
+
+    // Only add new items, don't clear existing
+    const existingTexts = new Set(
+      Array.from(container.querySelectorAll('.resonance-item-text')).map(el => el.textContent)
+    );
+
+    let added = false;
+    top.forEach((item, i) => {
+      if (existingTexts.has(item.text)) return;
+      added = true;
+
+      const el = document.createElement('div');
+      el.className = 'resonance-item';
+      el.style.animationDelay = `${i * 0.15}s`;
+
+      const sourceInfo = item.source ? ` · ${item.source}` : '';
+
+      el.innerHTML = `
+        <button class="resonance-dismiss" onclick="this.parentElement.style.opacity='0';setTimeout(()=>this.parentElement.remove(),300)">dismiss</button>
+        <div class="resonance-item-type">
+          <span class="type-badge">${item.type}</span>
+          ${item.age}${sourceInfo}
+        </div>
+        <div class="resonance-item-text">${item.text}</div>
+        <div class="resonance-item-source">tagged: ${item.tags}</div>
+      `;
+
+      container.appendChild(el);
+    });
+
+    if (added || container.children.length > 0) {
+      panel.classList.add('visible');
+    }
+  }
+
+  // Tag classification
+  const tagDictionary = {
+    'rag': ['rag','retrieval','chunking','chunk','embedding','vector','bm25','sparse','dense','rerank','hybrid','corpus','ingest'],
+    'agents': ['agent','agentic','orchestrat','mcp','tool use','openclaw'],
+    'evals': ['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','measure','quality','error analysis'],
+    'infra': ['deploy','docker','kubernetes','server','cloud','gpu','mlops','inference','latency','production','api'],
+    'learning': ['learn','study','insight','principle','intuition','understand','realize'],
+    'llm': ['llm','language model','gpt','claude','qwen','mistral','transformer','token','context window','prompt']
+  };
+
+  function classifyContent(text) {
+    const lower = text.toLowerCase();
+    let matches = [];
+    for (const [tag, keywords] of Object.entries(tagDictionary)) {
+      let score = 0;
+      for (const kw of keywords) { if (lower.includes(kw)) score++; }
+      if (score > 0) matches.push({ tag, score });
+    }
+    matches.sort((a, b) => b.score - a.score);
+    return matches.slice(0, 3).map(m => m.tag);
+  }
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    const existingTags = new Set(
+      Array.from(row.querySelectorAll('.tag')).map(t => t.textContent)
+    );
+
+    // Only add new tags
+    let hasNew = false;
+    tags.forEach((tagName, i) => {
+      if (existingTags.has(tagName)) return;
+      hasNew = true;
+      const tag = document.createElement('span');
+      tag.className = 'tag auto';
+      tag.textContent = tagName;
+      tag.style.animationDelay = `${i * 0.1}s`;
+      tag.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+
+      const addBtn = row.querySelector('.tag-add');
+      if (addBtn) row.insertBefore(tag, addBtn);
+      else row.appendChild(tag);
+    });
+
+    // Ensure + add button exists
+    if (!row.querySelector('.tag-add')) {
+      const addBtn = document.createElement('span');
+      addBtn.className = 'tag-add';
+      addBtn.textContent = '+ add';
+      addBtn.style.animationDelay = '0.3s';
+      addBtn.onclick = function() {
+        const name = prompt('Tag name:');
+        if (name && name.trim()) {
+          const t = document.createElement('span');
+          t.className = 'tag auto'; t.textContent = name.trim().toLowerCase();
+          t.style.animation = 'tag-appear 0.35s ease-out forwards';
+          t.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+          row.insertBefore(t, addBtn);
+        }
+      };
+      row.appendChild(addBtn);
+    }
+  }
+
+  // ==================
+  // Close session
+  // ==================
+  let inactivityTimeout = null;
+  let hintShown = false;
+
+  function showCloseButton() {
+    const words = editor.value.trim().split(/\s+/).filter(w => w.length > 0);
+    const btn = document.getElementById('close-session');
+    btn.classList.toggle('visible', words.length >= 3);
+
+    // Show the keyboard hint once after first meaningful writing
+    if (words.length >= 10 && !hintShown) {
+      hintShown = true;
+      const hint = document.getElementById('close-hint');
+      hint.classList.add('visible');
+      setTimeout(() => hint.classList.remove('visible'), 4000);
+    }
+  }
+
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    const words = editor.value.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length >= 3) {
+      inactivityTimeout = setTimeout(() => {
+        // Auto-close after 15 min of inactivity
+        closeSession(true);
+      }, 15 * 60 * 1000);
+    }
+  }
+
+  function closeSession(auto = false) {
+    const text = editor.value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('close-session');
+    btn.textContent = auto ? 'session closed' : 'closing…';
+    btn.classList.add('closing');
+
+    const words = text.split(/\s+/).filter(w => w.length > 0).length;
+    const elapsed = Math.max(1, Math.floor((Date.now() - sessionStart) / 60000));
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+    const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const label = auto
+      ? `${dateStr} · ${elapsed}m session · ${words} words · auto-closed`
+      : `${dateStr} · ${elapsed}m session · ${words} words`;
+
+    setTimeout(() => {
+      // Move current text to past sessions
+      const pastSessions = document.getElementById('past-sessions');
+      const todayDivider = pastSessions.querySelector('.session-divider:last-child');
+
+      // Insert the written text before the "today" divider, then update divider
+      const textBlock = document.createElement('div');
+      textBlock.className = 'past-session-text';
+      textBlock.textContent = text;
+
+      const divider = document.createElement('div');
+      divider.className = 'session-divider';
+      divider.innerHTML = `<span class="session-divider-label">${label}</span>`;
+
+      const newSessionDivider = document.createElement('div');
+      newSessionDivider.className = 'session-divider';
+      newSessionDivider.innerHTML = `<span class="session-divider-label">new session</span>`;
+
+      // Remove old "today · new session" divider
+      if (todayDivider) todayDivider.remove();
+
+      pastSessions.appendChild(textBlock);
+      pastSessions.appendChild(divider);
+      pastSessions.appendChild(newSessionDivider);
+
+      // Reset editor
+      editor.value = '';
+      editor.style.height = 'auto';
+      document.getElementById('word-count').textContent = '';
+      document.getElementById('session-time').textContent = '0m';
+      sessionStart = Date.now();
+
+      // Reset button
+      btn.textContent = 'end session';
+      btn.classList.remove('closing', 'visible');
+
+      // Reset resonance panel
+      document.getElementById('resonance-panel').classList.remove('visible');
+      document.getElementById('resonance-items').innerHTML = '';
+
+      // Reset tags
+      const row = document.getElementById('tag-row');
+      row.innerHTML = '<span class="tag-label">tags</span>';
+      document.getElementById('note-meta').classList.remove('visible');
+
+      // Reset resonance thresholds
+      lastResonanceText = '';
+      wordThresholdForResonance = 20;
+      hintShown = false;
+
+      // Scroll to new session and focus
+      editor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => editor.focus(), 400);
+    }, 500);
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // ⌘ + . to close session
+    if ((e.metaKey || e.ctrlKey) && e.key === '.') {
+      e.preventDefault();
+      closeSession();
+    }
+  });
+
+  // Focus on load
+  window.addEventListener('load', () => editor.focus());
+</script>
+</body>
+</html>

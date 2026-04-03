@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Curation Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-alt: #faf9f7;
+    --surface-hover: #f0efec;
+    --border: #dddad3;
+    --border-focus: #b8b4ab;
+    --text-primary: #2c2a26;
+    --text-secondary: #5c5850;
+    --text-muted: #9b9588;
+    --text-faint: #c4bfb5;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.06);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.06);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.07);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0e0f11;
+    --surface: #16171b;
+    --surface-alt: #1a1b1f;
+    --surface-hover: #1e1f24;
+    --border: #2a2b31;
+    --border-focus: #4a4b55;
+    --text-primary: #d4d4d8;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+    --text-faint: #3a3a40;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.35s ease, color 0.35s ease;
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm); z-index: 50; padding: 0; line-height: 1;
+  }
+  .theme-toggle:hover { border-color: var(--border-focus); transform: scale(1.05); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+  :root .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* Header */
+  .header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 36px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: var(--font-serif); font-weight: 300;
+    font-size: 1.1rem; letter-spacing: 0.02em; color: var(--text-secondary);
+  }
+  .header h1 em { color: var(--accent); font-style: normal; }
+  .corpus-count {
+    font-size: 0.7rem; color: var(--text-muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-right: 36px;
+  }
+
+  /* ======================== */
+  /* URL Input                */
+  /* ======================== */
+  .url-input-wrap {
+    position: relative;
+  }
+
+  .url-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.85rem; font-weight: 300;
+    padding: 14px 16px 14px 40px;
+    outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.35s ease;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .url-input::placeholder {
+    color: var(--text-faint); font-style: italic; font-family: var(--font-serif);
+  }
+
+  .url-input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-dim), var(--shadow-sm);
+  }
+
+  .url-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 0.85rem; color: var(--text-faint); pointer-events: none;
+  }
+
+  .url-hint {
+    font-size: 0.6rem; color: var(--text-faint); margin-top: 8px;
+    padding: 0 4px; letter-spacing: 0.03em;
+  }
+
+  .url-hint kbd {
+    display: inline-block; padding: 1px 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; font-family: var(--font-mono); font-size: 0.55rem;
+    margin: 0 1px;
+  }
+
+  /* ======================== */
+  /* Fetching State           */
+  /* ======================== */
+  .fetch-indicator {
+    display: none;
+    align-items: center; gap: 10px;
+    margin-top: 20px; padding: 14px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  }
+
+  .fetch-indicator.active { display: flex; }
+
+  .fetch-spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fetch-text {
+    font-size: 0.7rem; color: var(--text-muted);
+    font-family: var(--font-serif); font-style: italic;
+  }
+
+  /* ======================== */
+  /* Preview Card             */
+  /* ======================== */
+  .preview-card {
+    display: none;
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease, background 0.35s ease;
+  }
+
+  .preview-card.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Source bar */
+  .preview-source {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 18px;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.35s ease;
+  }
+
+  .source-favicon {
+    width: 16px; height: 16px; border-radius: 3px;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; color: var(--text-muted);
+    flex-shrink: 0; overflow: hidden;
+  }
+
+  .source-favicon img {
+    width: 100%; height: 100%; object-fit: contain;
+  }
+
+  .source-domain {
+    font-size: 0.65rem; color: var(--text-muted);
+    letter-spacing: 0.04em;
+    flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .source-meta {
+    display: flex; gap: 10px; flex-shrink: 0;
+  }
+
+  .meta-pill {
+    font-size: 0.55rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-muted); background: var(--surface-hover);
+    padding: 3px 8px; border-radius: 4px;
+  }
+
+  /* Article content */
+  .preview-body { padding: 20px 18px; }
+
+  .preview-title {
+    font-family: var(--font-serif);
+    font-size: 1.15rem; font-weight: 500;
+    line-height: 1.4; color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+
+  .preview-excerpt {
+    font-family: var(--font-serif);
+    font-size: 0.85rem; font-weight: 300;
+    font-style: italic;
+    line-height: 1.65; color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Estimated chunks */
+  .preview-stats {
+    display: flex; gap: 16px;
+    padding: 0 18px 16px 18px;
+    margin-top: 4px;
+  }
+
+  .stat {
+    font-size: 0.58rem; color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  .stat strong {
+    color: var(--text-muted); font-weight: 500;
+  }
+
+  /* Intent field */
+  .intent-section {
+    padding: 0 18px 18px 18px;
+  }
+
+  .intent-label {
+    font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+
+  .intent-input {
+    width: 100%; background: var(--surface-alt);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); font-family: var(--font-mono);
+    font-size: 0.78rem; font-weight: 300;
+    padding: 10px 14px; outline: none; resize: none;
+    line-height: 1.5; min-height: 38px; max-height: 80px;
+    transition: border-color 0.2s ease, background 0.35s ease;
+  }
+
+  .intent-input:focus { border-color: var(--border-focus); }
+
+  .intent-input::placeholder {
+    color: var(--text-faint); font-style: italic; font-family: var(--font-serif);
+  }
+
+  .intent-hint {
+    font-size: 0.55rem; color: var(--text-faint); margin-top: 6px;
+    letter-spacing: 0.02em; font-family: var(--font-serif); font-style: italic;
+  }
+
+  /* Read status toggle */
+  .read-toggle {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 18px 18px 18px;
+  }
+
+  .read-switch {
+    position: relative; width: 34px; height: 18px;
+    background: var(--border); border-radius: 9px;
+    cursor: pointer; transition: background 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .read-switch.on { background: var(--accent); }
+
+  .read-switch-knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--surface); box-shadow: var(--shadow-sm);
+    transition: transform 0.25s ease;
+  }
+
+  .read-switch.on .read-switch-knob { transform: translateX(16px); }
+
+  .read-toggle-label {
+    font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.04em;
+  }
+
+  /* Tags */
+  .tag-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    padding: 0 18px 16px 18px; min-height: 24px;
+  }
+  .tag-label {
+    font-size: 0.55rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted); margin-right: 4px;
+  }
+  .tag-placeholder {
+    font-size: 0.6rem; font-style: italic; font-family: var(--font-serif);
+    color: var(--text-faint); opacity: 0.6;
+  }
+  .tag {
+    padding: 4px 10px; font-family: var(--font-mono);
+    font-size: 0.6rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface-alt);
+    border: 1px solid var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease; user-select: none;
+    opacity: 0; transform: translateY(4px) scale(0.92);
+    animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag.auto { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag.auto:hover { background: transparent; color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+  .tag.dismissed { opacity: 0.3; text-decoration: line-through; border-color: var(--border); color: var(--text-muted); background: transparent; }
+  .tag-add {
+    padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--text-muted); background: transparent;
+    border: 1px dashed var(--border); border-radius: 20px;
+    cursor: pointer; transition: all 0.2s ease;
+    opacity: 0; animation: tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color: var(--border-focus); color: var(--text-secondary); border-style: solid; }
+  @keyframes tag-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* Curate button */
+  .curate-btn {
+    width: 100%; margin-top: 16px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-sm);
+    display: none;
+  }
+  .curate-btn.visible { display: block; }
+  .curate-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .curate-btn:active { transform: scale(0.99); }
+  .curate-btn.saving { border-color: var(--accent); color: var(--accent); pointer-events: none; }
+  .curate-btn.saved { border-color: var(--success); color: var(--success); background: var(--success-dim); pointer-events: none; }
+
+  /* Ripple */
+  .ripple-container { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
+  .ripple {
+    position:absolute; border-radius:50%; border: 1px solid var(--success);
+    opacity:0; animation: ripple-out 1.2s ease-out forwards;
+  }
+  @keyframes ripple-out { 0%{width:0;height:0;opacity:0.3;} 100%{width:300px;height:300px;opacity:0;} }
+
+  /* Queue — articles waiting to be read */
+  .queue {
+    margin-top: 44px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .queue-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .queue-title {
+    font-size: 0.6rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+
+  .queue-count {
+    font-size: 0.58rem; color: var(--text-faint); letter-spacing: 0.04em;
+  }
+
+  .queue-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    animation: fade-in 0.4s ease-out;
+  }
+  [data-theme="dark"] .queue-item { border-bottom-color: rgba(255,255,255,0.04); }
+  @keyframes fade-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+
+  .queue-item-top {
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+
+  .queue-item-domain {
+    font-size: 0.55rem; color: var(--text-faint); letter-spacing: 0.04em;
+    background: var(--surface-alt); padding: 2px 7px;
+    border-radius: 3px; white-space: nowrap; flex-shrink: 0; margin-top: 3px;
+  }
+
+  .queue-item-title {
+    font-family: var(--font-serif); font-size: 0.85rem; font-weight: 400;
+    color: var(--text-secondary); line-height: 1.4;
+    flex: 1; min-width: 0;
+  }
+
+  .queue-item-status {
+    font-size: 0.52rem; letter-spacing: 0.06em; text-transform: uppercase;
+    flex-shrink: 0; margin-top: 4px; padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .queue-item-status.unread {
+    color: var(--accent); background: var(--accent-dim);
+  }
+
+  .queue-item-status.embedded {
+    color: var(--success); background: var(--success-dim);
+  }
+
+  .queue-item-meta {
+    font-size: 0.58rem; color: var(--text-faint);
+    margin-top: 5px; padding-left: 0;
+    display: flex; gap: 10px;
+  }
+
+  .queue-item-intent {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: 0.72rem; color: var(--text-muted);
+    margin-top: 6px; line-height: 1.5;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 16px; }
+    .url-input, .intent-input { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+  <div class="header">
+    <h1>capture <em>·</em> curate</h1>
+    <span class="corpus-count">247 items in corpus</span>
+  </div>
+
+  <!-- URL Input -->
+  <div class="url-input-wrap">
+    <span class="url-icon">🔗</span>
+    <input
+      type="url"
+      class="url-input"
+      id="url-input"
+      placeholder="paste an article URL…"
+      spellcheck="false"
+    />
+  </div>
+  <div class="url-hint"><kbd>Enter</kbd> to fetch &amp; preview</div>
+
+  <!-- Fetching indicator -->
+  <div class="fetch-indicator" id="fetch-indicator">
+    <div class="fetch-spinner"></div>
+    <span class="fetch-text" id="fetch-text">fetching article…</span>
+  </div>
+
+  <!-- Preview Card -->
+  <div class="preview-card" id="preview-card">
+
+    <div class="preview-source" id="preview-source">
+      <div class="source-favicon" id="source-favicon">
+        <img id="favicon-img" src="" alt="" style="display:none;" />
+        <span id="favicon-fallback">●</span>
+      </div>
+      <span class="source-domain" id="source-domain">hamel.dev</span>
+      <div class="source-meta">
+        <span class="meta-pill" id="meta-readtime">8 min read</span>
+        <span class="meta-pill" id="meta-date">Mar 2026</span>
+      </div>
+    </div>
+
+    <div class="preview-body">
+      <div class="preview-title" id="preview-title">
+        A Field Guide to Rapidly Improving AI Products
+      </div>
+      <div class="preview-excerpt" id="preview-excerpt">
+        Evaluation methods, data-driven improvement, and experimentation techniques from 30+ production implementations. Most AI teams focus on the wrong things — they invest weeks building complex AI systems, but can't tell you if their changes are helping or hurting.
+      </div>
+    </div>
+
+    <div class="preview-stats">
+      <span class="stat">est. <strong id="stat-chunks">24</strong> chunks</span>
+      <span class="stat">~<strong id="stat-tokens">6,200</strong> tokens</span>
+    </div>
+
+    <!-- Intent: why are you saving this? -->
+    <div class="intent-section">
+      <div class="intent-label">why are you saving this?</div>
+      <textarea
+        class="intent-input"
+        id="intent-input"
+        placeholder="for the eval pipeline comparison…"
+        rows="1"
+      ></textarea>
+      <div class="intent-hint">your future self will thank you for this context</div>
+    </div>
+
+    <!-- Read status -->
+    <div class="read-toggle">
+      <div class="read-switch" id="read-switch" onclick="toggleRead()">
+        <div class="read-switch-knob"></div>
+      </div>
+      <span class="read-toggle-label" id="read-label">unread — queue for later</span>
+    </div>
+
+    <!-- Tags -->
+    <div class="tag-row" id="tag-row">
+      <span class="tag-label">tags</span>
+      <span class="tag-placeholder">auto-generated from content</span>
+    </div>
+
+  </div>
+
+  <!-- Curate button -->
+  <button class="curate-btn" id="curate-btn" onclick="curate()">
+    Add to collection
+  </button>
+
+  <!-- Reading queue -->
+  <div class="queue">
+    <div class="queue-header">
+      <span class="queue-title">Reading queue</span>
+      <span class="queue-count">4 unread · 12 total</span>
+    </div>
+
+    <div class="queue-item">
+      <div class="queue-item-top">
+        <span class="queue-item-domain">hamel.dev</span>
+        <span class="queue-item-title">How should I approach evaluating my RAG system?</span>
+        <span class="queue-item-status unread">unread</span>
+      </div>
+      <div class="queue-item-meta">
+        <span>5 min · 14 chunks</span>
+        <span>tagged: evals, rag</span>
+      </div>
+      <div class="queue-item-intent">for understanding retrieval vs generation eval separation</div>
+    </div>
+
+    <div class="queue-item">
+      <div class="queue-item-top">
+        <span class="queue-item-domain">blog.premai.io</span>
+        <span class="queue-item-title">Hybrid Search for RAG: BM25, SPLADE, and Vector Search Combined</span>
+        <span class="queue-item-status embedded">read</span>
+      </div>
+      <div class="queue-item-meta">
+        <span>12 min · 31 chunks</span>
+        <span>tagged: rag, infra</span>
+      </div>
+      <div class="queue-item-intent">reference for implementing hybrid retrieval in the notebook</div>
+    </div>
+
+    <div class="queue-item">
+      <div class="queue-item-top">
+        <span class="queue-item-domain">firecrawl.dev</span>
+        <span class="queue-item-title">Best Chunking Strategies for RAG in 2026</span>
+        <span class="queue-item-status unread">unread</span>
+      </div>
+      <div class="queue-item-meta">
+        <span>9 min · 22 chunks</span>
+        <span>tagged: rag</span>
+      </div>
+      <div class="queue-item-intent">need the benchmark numbers for my blog post on chunking</div>
+    </div>
+
+    <div class="queue-item">
+      <div class="queue-item-top">
+        <span class="queue-item-domain">weaviate.io</span>
+        <span class="queue-item-title">Chunking Strategies to Improve LLM RAG Pipeline Performance</span>
+        <span class="queue-item-status unread">unread</span>
+      </div>
+      <div class="queue-item-meta">
+        <span>10 min · 26 chunks</span>
+        <span>tagged: rag, infra</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ripple-container" id="ripple-container"></div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', 'dark');
+  })();
+
+  // Simulated article database for demo
+  const articleDB = {
+    'hamel.dev': {
+      title: 'A Field Guide to Rapidly Improving AI Products',
+      excerpt: 'Evaluation methods, data-driven improvement, and experimentation techniques from 30+ production implementations. Most AI teams focus on the wrong things — they invest weeks building complex AI systems, but can\'t tell you if their changes are helping or hurting.',
+      readtime: '8 min read', date: 'Mar 2026', chunks: 24, tokens: '6,200',
+      tags: ['evals', 'learning']
+    },
+    'blog.premai.io': {
+      title: 'Building Production RAG: Architecture, Chunking, Evaluation & Monitoring',
+      excerpt: '80% of RAG failures trace back to the ingestion and chunking layer, not the LLM. Most teams discover this after spending weeks tuning prompts and swapping models while their retrieval quietly returns the wrong context.',
+      readtime: '14 min read', date: 'Mar 2026', chunks: 38, tokens: '9,800',
+      tags: ['rag', 'infra', 'evals']
+    },
+    'arxiv.org': {
+      title: 'RAGAS: Automated Evaluation of Retrieval Augmented Generation',
+      excerpt: 'A framework for reference-free evaluation of RAG pipelines measuring faithfulness, answer relevancy, and context relevancy without relying on ground truth human annotations.',
+      readtime: '20 min read', date: 'Sep 2023', chunks: 42, tokens: '11,400',
+      tags: ['evals', 'rag']
+    }
+  };
+
+  const defaultArticle = {
+    title: '', excerpt: '',
+    readtime: '— min read', date: '—', chunks: '—', tokens: '—',
+    tags: ['learning']
+  };
+
+  // URL input handling
+  const urlInput = document.getElementById('url-input');
+
+  urlInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      fetchUrl(this.value.trim());
+    }
+  });
+
+  // Also trigger on paste after a short delay
+  urlInput.addEventListener('paste', function() {
+    setTimeout(() => {
+      const val = this.value.trim();
+      if (/^https?:\/\/\S+$/.test(val)) fetchUrl(val);
+    }, 100);
+  });
+
+  function fetchUrl(url) {
+    if (!url || !/^https?:\/\//.test(url)) return;
+
+    // Show fetching state
+    const indicator = document.getElementById('fetch-indicator');
+    const card = document.getElementById('preview-card');
+    const btn = document.getElementById('curate-btn');
+
+    card.classList.remove('visible');
+    btn.classList.remove('visible');
+    indicator.classList.add('active');
+
+    // Simulate fetch stages
+    const fetchText = document.getElementById('fetch-text');
+    fetchText.textContent = 'fetching page…';
+
+    setTimeout(() => { fetchText.textContent = 'extracting content…'; }, 600);
+    setTimeout(() => { fetchText.textContent = 'estimating chunks…'; }, 1200);
+
+    setTimeout(() => {
+      indicator.classList.remove('active');
+
+      // Match against demo DB or use defaults
+      let article = defaultArticle;
+      let domain = '';
+      try { domain = new URL(url).hostname.replace('www.', ''); } catch(e) {}
+
+      for (const [key, val] of Object.entries(articleDB)) {
+        if (domain.includes(key)) { article = val; break; }
+      }
+
+      // If no match, generate plausible data
+      if (!article.title) {
+        article = {
+          title: 'Article from ' + domain,
+          excerpt: 'Content preview will be extracted during ingestion. The full article will be chunked and embedded into your corpus.',
+          readtime: Math.floor(Math.random() * 15 + 3) + ' min read',
+          date: 'Apr 2026',
+          chunks: Math.floor(Math.random() * 30 + 8),
+          tokens: (Math.floor(Math.random() * 8 + 2) * 1000).toLocaleString(),
+          tags: ['learning']
+        };
+      }
+
+      // Populate card
+      document.getElementById('source-domain').textContent = domain;
+      document.getElementById('meta-readtime').textContent = article.readtime;
+      document.getElementById('meta-date').textContent = article.date;
+      document.getElementById('preview-title').textContent = article.title;
+      document.getElementById('preview-excerpt').textContent = article.excerpt;
+      document.getElementById('stat-chunks').textContent = article.chunks;
+      document.getElementById('stat-tokens').textContent = article.tokens;
+
+      // Show card with animation
+      card.style.display = 'block';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          card.classList.add('visible');
+          btn.classList.add('visible');
+        });
+      });
+
+      // Auto-tag
+      showAutoTags(article.tags);
+    }, 1800);
+  }
+
+  // Read toggle
+  let isRead = false;
+  function toggleRead() {
+    isRead = !isRead;
+    document.getElementById('read-switch').classList.toggle('on', isRead);
+    document.getElementById('read-label').textContent = isRead
+      ? 'already read' : 'unread — queue for later';
+  }
+
+  // Auto-resize
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+    });
+  });
+
+  // Tags
+  const tagDictionary = {
+    'rag': ['rag','retrieval','chunking','chunk','embedding','vector','bm25','sparse','dense','rerank','hybrid','corpus','ingest'],
+    'agents': ['agent','agentic','orchestrat','mcp','tool use','openclaw','nanoclaw'],
+    'evals': ['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','precision','recall','hallucin','judge','measure'],
+    'infra': ['deploy','docker','kubernetes','server','cloud','gpu','mlops','inference','latency','production','api'],
+    'learning': ['learn','study','course','understand','concept','insight','principle'],
+    'llm': ['llm','language model','gpt','claude','qwen','mistral','transformer','token','context window','prompt']
+  };
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span>';
+    tags.forEach((tagName, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag auto';
+      tag.textContent = tagName;
+      tag.style.animationDelay = `${i * 0.12}s`;
+      tag.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+      row.appendChild(tag);
+    });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'tag-add';
+    addBtn.textContent = '+ add';
+    addBtn.style.animationDelay = `${tags.length * 0.12}s`;
+    addBtn.onclick = function() {
+      const name = prompt('Tag name:');
+      if (name && name.trim()) {
+        const t = document.createElement('span');
+        t.className = 'tag auto'; t.textContent = name.trim().toLowerCase();
+        t.style.animation = 'tag-appear 0.35s ease-out forwards';
+        t.onclick = function() { this.classList.toggle('dismissed'); this.classList.toggle('auto'); };
+        row.insertBefore(t, addBtn);
+      }
+    };
+    row.appendChild(addBtn);
+  }
+
+  // Curate (save)
+  function curate() {
+    const btn = document.getElementById('curate-btn');
+    btn.textContent = 'Adding…';
+    btn.classList.add('saving');
+
+    const rect = btn.getBoundingClientRect();
+    const c = document.getElementById('ripple-container');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (rect.left + rect.width / 2 - 150) + 'px';
+    r.style.top = (rect.top + rect.height / 2 - 150) + 'px';
+    c.appendChild(r);
+    setTimeout(() => r.remove(), 1200);
+
+    setTimeout(() => {
+      btn.textContent = 'Added to collection';
+      btn.classList.remove('saving');
+      btn.classList.add('saved');
+
+      // Add to queue
+      addToQueue();
+
+      setTimeout(() => {
+        // Reset
+        urlInput.value = '';
+        document.getElementById('intent-input').value = '';
+        document.getElementById('preview-card').classList.remove('visible');
+        setTimeout(() => { document.getElementById('preview-card').style.display = 'none'; }, 400);
+        btn.textContent = 'Add to collection';
+        btn.classList.remove('saved', 'visible');
+        isRead = false;
+        document.getElementById('read-switch').classList.remove('on');
+        document.getElementById('read-label').textContent = 'unread — queue for later';
+        const row = document.getElementById('tag-row');
+        row.innerHTML = '<span class="tag-label">tags</span><span class="tag-placeholder">auto-generated from content</span>';
+        urlInput.focus();
+      }, 1200);
+    }, 600);
+  }
+
+  function addToQueue() {
+    const queue = document.querySelector('.queue');
+    const title = document.getElementById('preview-title').textContent;
+    const domain = document.getElementById('source-domain').textContent;
+    const intent = document.getElementById('intent-input').value.trim();
+    const readtime = document.getElementById('meta-readtime').textContent;
+    const chunks = document.getElementById('stat-chunks').textContent;
+    const tags = Array.from(document.querySelectorAll('.tag.auto:not(.dismissed)')).map(t => t.textContent);
+    const status = isRead ? 'read' : 'unread';
+    const statusClass = isRead ? 'embedded' : 'unread';
+
+    const intentHtml = intent
+      ? `<div class="queue-item-intent">${intent}</div>`
+      : '';
+
+    const item = document.createElement('div');
+    item.className = 'queue-item';
+    item.innerHTML = `
+      <div class="queue-item-top">
+        <span class="queue-item-domain">${domain}</span>
+        <span class="queue-item-title">${title}</span>
+        <span class="queue-item-status ${statusClass}">${status}</span>
+      </div>
+      <div class="queue-item-meta">
+        <span>${readtime.replace(' read', '')} · ${chunks} chunks</span>
+        ${tags.length ? `<span>tagged: ${tags.join(', ')}</span>` : ''}
+      </div>
+      ${intentHtml}
+    `;
+
+    const header = queue.querySelector('.queue-header');
+    header.after(item);
+  }
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (document.getElementById('preview-card').classList.contains('visible')) curate();
+    }
+  });
+
+  window.addEventListener('load', () => urlInput.focus());
+</script>
+</body>
+</html>

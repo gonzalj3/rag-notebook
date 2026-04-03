@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieve — Search</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f2; --surface: #ffffff; --surface-alt: #f9f7f3;
+    --surface-hover: #f0efec; --border: #dddad3; --border-focus: #b8b4ab;
+    --text-primary: #2c2a26; --text-secondary: #5c5850; --text-muted: #9b9588;
+    --text-faint: #c4bfb4; --text-ghost: #ddd9d0;
+    --accent: #7c5cbf; --accent-dim: rgba(124,92,191,0.06);
+    --success: #3a9a6e; --success-dim: rgba(58,154,110,0.06);
+    --find: #3d6b8e; --find-dim: rgba(61,107,142,0.05); --find-border: rgba(61,107,142,0.15);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --shadow-md: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.07);
+    --radius: 10px; --radius-lg: 14px;
+    --font-mono: 'IBM Plex Mono',monospace; --font-serif: 'Newsreader',serif; --font-body: 'Lora',serif;
+  }
+  [data-theme="dark"] {
+    --bg: #0e0f11; --surface: #16171b; --surface-alt: #1a1b1f;
+    --surface-hover: #1e1f24; --border: #2a2b31; --border-focus: #4a4b55;
+    --text-primary: #d4d4d8; --text-secondary: #a1a1aa; --text-muted: #52525b;
+    --text-faint: #3a3a40; --text-ghost: #2a2a30;
+    --accent: #a78bfa; --accent-dim: rgba(167,139,250,0.08);
+    --success: #6ee7b7; --success-dim: rgba(110,231,183,0.08);
+    --find: #6aa4cc; --find-dim: rgba(106,164,204,0.06); --find-border: rgba(106,164,204,0.15);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2); --shadow-md: 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.35);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text-primary);font-family:var(--font-mono);font-weight:300;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 20px;-webkit-font-smoothing:antialiased;transition:background .35s,color .35s;}
+  .container{width:100%;max-width:640px;}
+
+  /* Theme toggle */
+  .theme-toggle{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .3s;box-shadow:var(--shadow-sm);z-index:50;padding:0;line-height:1;}
+  .theme-toggle:hover{border-color:var(--border-focus);transform:scale(1.05);}
+  .theme-toggle .icon-sun,.theme-toggle .icon-moon{display:none;}
+  :root .theme-toggle .icon-moon{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-sun{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-moon{display:none;}
+
+  /* Header */
+  .header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .header h1{font-family:var(--font-serif);font-weight:300;font-size:1.1rem;letter-spacing:.02em;color:var(--text-secondary);}
+  .header h1 em{color:var(--find);font-style:normal;}
+  .corpus-count{font-size:.7rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-right:36px;}
+
+  /* Search bar */
+  .search-wrap{position:relative;margin-bottom:6px;}
+  .search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);color:var(--text-primary);font-family:var(--font-body);font-size:1rem;font-weight:400;padding:16px 18px 16px 44px;outline:none;transition:border-color .25s,box-shadow .25s;box-shadow:var(--shadow-md);}
+  .search-input::placeholder{color:var(--text-ghost);font-style:italic;}
+  .search-input:focus{border-color:var(--find);box-shadow:0 0 0 3px var(--find-dim),var(--shadow-md);}
+  .search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--text-faint);pointer-events:none;}
+  .search-shortcut{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--text-faint);letter-spacing:.04em;background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+
+  /* Filters */
+  .filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:24px;padding:0 2px;}
+  .filter-chip{font-family:var(--font-mono);font-size:.55rem;letter-spacing:.06em;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer;transition:all .2s;text-transform:uppercase;user-select:none;}
+  .filter-chip:hover{border-color:var(--border-focus);color:var(--text-secondary);}
+  .filter-chip.active{border-color:var(--find);color:var(--find);background:var(--find-dim);}
+  .filter-spacer{flex:1;}
+  .result-count{font-size:.6rem;color:var(--text-faint);letter-spacing:.04em;}
+
+  /* Results */
+  .results{margin-top:8px;}
+  .result-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:default;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm);}
+  .result-item:hover{border-color:var(--border-focus);box-shadow:var(--shadow-md);}
+
+  .result-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .result-type{font-size:.48rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:4px;flex-shrink:0;margin-top:2px;font-weight:500;}
+  .result-type.url{color:var(--accent);background:var(--accent-dim);}
+  .result-type.note{color:#6a9fc4;background:rgba(106,159,196,.06);}
+  .result-type.paste{color:#c47a9a;background:rgba(196,122,154,.06);}
+  .result-type.handwritten{color:#8b6b2e;background:rgba(139,107,46,.06);}
+  .result-type.conversation{color:var(--accent);background:var(--accent-dim);}
+  .result-type.dialogue{color:#6a8a5a;background:rgba(106,138,90,.06);}
+  .result-type.book_page{color:#8b6b2e;background:rgba(139,107,46,.06);}
+  .result-type.takeaway{color:var(--success);background:var(--success-dim);}
+  [data-theme="dark"] .result-type.note{color:#93c5fd;background:rgba(147,197,253,.08);}
+  [data-theme="dark"] .result-type.paste{color:#f9a8d4;background:rgba(249,168,212,.08);}
+  [data-theme="dark"] .result-type.handwritten{color:#d4a853;background:rgba(212,168,83,.08);}
+
+  .result-title{font-family:var(--font-serif);font-size:.92rem;font-weight:500;color:var(--text-primary);line-height:1.4;flex:1;min-width:0;}
+  .result-score{font-size:.5rem;color:var(--text-faint);letter-spacing:.04em;flex-shrink:0;margin-top:4px;background:var(--surface-alt);padding:2px 6px;border-radius:3px;}
+
+  .result-excerpt{font-family:var(--font-serif);font-size:.82rem;font-style:italic;color:var(--text-muted);line-height:1.6;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .result-excerpt mark{background:rgba(61,107,142,.12);color:var(--text-primary);padding:0 2px;border-radius:2px;font-style:normal;}
+  [data-theme="dark"] .result-excerpt mark{background:rgba(106,164,204,.15);}
+
+  .result-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .result-meta-item{font-size:.55rem;color:var(--text-faint);letter-spacing:.03em;}
+  .result-tag{font-size:.5rem;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(124,92,191,.1);border-radius:12px;padding:2px 8px;}
+  [data-theme="dark"] .result-tag{color:var(--accent);border-color:rgba(167,139,250,.15);}
+
+  /* Action bar on each result */
+  .result-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);opacity:0;transition:opacity .2s;}
+  .result-item:hover .result-actions{opacity:1;}
+  .action-btn{font-family:var(--font-mono);font-size:.52rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px;}
+  .action-btn:hover{color:var(--text-secondary);border-color:var(--border-focus);background:var(--surface-alt);}
+  .action-btn .icon{font-size:.65rem;}
+  .action-btn.primary:hover{color:var(--find);border-color:var(--find);}
+
+  /* Empty state */
+  .empty-state{text-align:center;padding:60px 20px;}
+  .empty-icon{font-size:2rem;opacity:.15;margin-bottom:12px;}
+  .empty-text{font-family:var(--font-serif);font-size:.88rem;font-style:italic;color:var(--text-faint);}
+
+  @media(max-width:480px){body{padding:24px 16px;}.search-input{font-size:16px;}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()"><span class="icon-sun">☀</span><span class="icon-moon">☽</span></button>
+
+<div class="container">
+  <div class="header">
+    <h1>retrieve <em>·</em> search</h1>
+    <span class="corpus-count">247 items</span>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" class="search-input" id="search-input" placeholder="search your knowledge…" autofocus />
+    <span class="search-shortcut">⌘K</span>
+  </div>
+
+  <div class="filters" id="filters">
+    <span class="filter-chip active" data-filter="all" onclick="setFilter(this)">all</span>
+    <span class="filter-chip" data-filter="url" onclick="setFilter(this)">articles</span>
+    <span class="filter-chip" data-filter="note" onclick="setFilter(this)">notes</span>
+    <span class="filter-chip" data-filter="handwritten" onclick="setFilter(this)">handwritten</span>
+    <span class="filter-chip" data-filter="conversation" onclick="setFilter(this)">conversations</span>
+    <span class="filter-chip" data-filter="dialogue" onclick="setFilter(this)">dialogue</span>
+    <span class="filter-chip" data-filter="takeaway" onclick="setFilter(this)">takeaways</span>
+    <span class="filter-spacer"></span>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+  function toggleTheme(){const h=document.documentElement;if(h.getAttribute('data-theme')==='dark'){h.removeAttribute('data-theme');localStorage.setItem('theme','light');}else{h.setAttribute('data-theme','dark');localStorage.setItem('theme','dark');}}
+  (function(){const s=localStorage.getItem('theme');if(s==='dark')document.documentElement.setAttribute('data-theme','dark');else if(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.setAttribute('data-theme','dark');})();
+
+  // Sample corpus
+  const corpus = [
+    {type:'url',title:'Hybrid Search for RAG: BM25, SPLADE, and Vector Search Combined',excerpt:'BM25 and vector search fail in complementary ways. When you search for "RAGAS faithfulness metric" you need exact keyword match. When you search for "how to know if retrieval is working" you need semantic understanding.',source:'blog.premai.io',date:'Mar 28',tags:['rag','infra'],score:.94},
+    {type:'takeaway',title:'My takeaway on chunking benchmarks',excerpt:'Recursive 512-token splitting beats semantic chunking. Not because it\'s theoretically optimal but because semantic creates too many tiny fragments averaging 43 tokens.',source:'study session',date:'Mar 31',tags:['rag'],score:.91},
+    {type:'handwritten',title:'Handwritten note: eval pipeline design',excerpt:'Evals are the product development process, not a QA step. Define what good looks like, measure the gap, engineer toward closing it. Build eval before generation layer.',source:'handwritten',date:'Apr 1',tags:['evals','learning'],score:.89},
+    {type:'conversation',title:'RAG notebook architecture discussion with Claude',excerpt:'The key insight was that building a tool I actually use daily tells a better portfolio story than any demo. The query patterns would be genuinely complex.',source:'claude.ai',date:'Apr 2',tags:['rag','career'],score:.87},
+    {type:'url',title:'A Field Guide to Rapidly Improving AI Products',excerpt:'Most AI teams focus on the wrong things — they invest weeks building complex systems but can\'t tell you if changes are helping or hurting. Error analysis is the single most valuable activity.',source:'hamel.dev',date:'Mar 25',tags:['evals','learning'],score:.85},
+    {type:'dialogue',title:'Why hybrid retrieval is non-negotiable for my notebook',excerpt:'The fundamental insight about hybrid retrieval is that BM25 and vector search fail in complementary ways. Technical terms need keyword match. Fuzzy conceptual questions need semantic search.',source:'dialogue session',date:'Apr 1',tags:['rag','infra'],score:.83},
+    {type:'paste',title:'"The abuse of generic metrics is endemic" — Hamel Husain',excerpt:'Many eval vendors promote off the shelf metrics which ensnare engineers into superfluous tasks. Similarity metrics have utility in search and recommendation but not for evaluating LLM outputs.',source:'twitter',date:'Mar 27',tags:['evals'],score:.80},
+    {type:'url',title:'Best Chunking Strategies for RAG in 2026',excerpt:'Recursive character splitting at 400-512 tokens with 10-20% overlap works well for most text content. Semantic chunking gives higher recall but costs more to run.',source:'firecrawl.dev',date:'Mar 29',tags:['rag'],score:.78},
+    {type:'note',title:'Quick note: BGE-M3 is the practical default for self-hosted embedding',excerpt:'MIT license, runs on CPU, massive production adoption. Handles hybrid dense+sparse in one model. Standard for private RAG deployment.',source:'quick note',date:'Mar 30',tags:['rag','infra'],score:.76},
+    {type:'url',title:'How should I approach evaluating my RAG system?',excerpt:'RAG systems have two distinct components requiring different evaluation approaches: retrieval and generation. Retrieval is a search problem — use traditional IR metrics.',source:'hamel.dev',date:'Mar 26',tags:['evals','rag'],score:.74},
+  ];
+
+  let currentFilter = 'all';
+  let currentQuery = '';
+
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', function(){ currentQuery = this.value.trim().toLowerCase(); renderResults(); });
+
+  function setFilter(chip){
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderResults();
+  }
+
+  function renderResults(){
+    const container = document.getElementById('results');
+    let items = corpus;
+
+    if(currentFilter !== 'all') items = items.filter(i => i.type === currentFilter || (currentFilter === 'url' && i.type === 'url'));
+    if(currentQuery){
+      items = items.filter(i => {
+        const text = (i.title + ' ' + i.excerpt + ' ' + i.tags.join(' ') + ' ' + i.source).toLowerCase();
+        return text.includes(currentQuery);
+      });
+      items.sort((a,b) => {
+        const aTitle = a.title.toLowerCase().includes(currentQuery) ? 1 : 0;
+        const bTitle = b.title.toLowerCase().includes(currentQuery) ? 1 : 0;
+        return bTitle - aTitle || b.score - a.score;
+      });
+    }
+
+    document.getElementById('result-count').textContent = items.length > 0 ? `${items.length} results` : '';
+
+    if(items.length === 0){
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">⌕</div><div class="empty-text">${currentQuery ? 'nothing found for "'+currentQuery+'"' : 'no items in this category yet'}</div></div>`;
+      return;
+    }
+
+    container.innerHTML = items.map(item => {
+      let excerpt = item.excerpt;
+      if(currentQuery){
+        const regex = new RegExp(`(${currentQuery.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi');
+        excerpt = excerpt.replace(regex, '<mark>$1</mark>');
+      }
+      const tags = item.tags.map(t=>`<span class="result-tag">${t}</span>`).join('');
+      return `
+        <div class="result-item">
+          <div class="result-top">
+            <span class="result-type ${item.type}">${item.type.replace('_',' ')}</span>
+            <span class="result-title">${item.title}</span>
+            <span class="result-score">${(item.score*100).toFixed(0)}%</span>
+          </div>
+          <div class="result-excerpt">${excerpt}</div>
+          <div class="result-meta">
+            <span class="result-meta-item">${item.source}</span>
+            <span class="result-meta-item">${item.date}</span>
+            ${tags}
+          </div>
+          <div class="result-actions">
+            <button class="action-btn primary"><span class="icon">💬</span> discuss</button>
+            <button class="action-btn"><span class="icon">📁</span> add to project</button>
+            <button class="action-btn"><span class="icon">🔗</span> copy link</button>
+            <button class="action-btn"><span class="icon">📄</span> view full</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Initial render
+  renderResults();
+
+  // ⌘K shortcut
+  document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();searchInput.focus();searchInput.select();}});
+</script>
+</body>
+</html>

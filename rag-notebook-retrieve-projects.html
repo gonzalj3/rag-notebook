@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieve — Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f6f5f2;--surface:#fff;--surface-alt:#f9f7f3;--surface-hover:#f0efec;--border:#dddad3;--border-focus:#b8b4ab;--text-primary:#2c2a26;--text-secondary:#5c5850;--text-muted:#9b9588;--text-faint:#c4bfb4;--text-ghost:#ddd9d0;--accent:#7c5cbf;--accent-dim:rgba(124,92,191,.06);--project:#2e7d5b;--project-dim:rgba(46,125,91,.05);--project-border:rgba(46,125,91,.18);--success:#3a9a6e;--shadow-sm:0 1px 2px rgba(0,0,0,.04);--shadow-md:0 2px 8px rgba(0,0,0,.05);--shadow-lg:0 4px 16px rgba(0,0,0,.07);--radius:10px;--radius-lg:14px;--font-mono:'IBM Plex Mono',monospace;--font-serif:'Newsreader',serif;--font-body:'Lora',serif;}
+  [data-theme="dark"]{--bg:#0e0f11;--surface:#16171b;--surface-alt:#1a1b1f;--surface-hover:#1e1f24;--border:#2a2b31;--border-focus:#4a4b55;--text-primary:#d4d4d8;--text-secondary:#a1a1aa;--text-muted:#52525b;--text-faint:#3a3a40;--text-ghost:#2a2a30;--accent:#a78bfa;--accent-dim:rgba(167,139,250,.08);--project:#5cc98a;--project-dim:rgba(92,201,138,.06);--project-border:rgba(92,201,138,.18);--success:#6ee7b7;--shadow-sm:0 1px 2px rgba(0,0,0,.2);--shadow-md:0 2px 8px rgba(0,0,0,.25);--shadow-lg:0 4px 16px rgba(0,0,0,.35);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text-primary);font-family:var(--font-mono);font-weight:300;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 20px;-webkit-font-smoothing:antialiased;transition:background .35s,color .35s;}
+  .container{width:100%;max-width:700px;}
+
+  .theme-toggle{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .3s;box-shadow:var(--shadow-sm);z-index:50;padding:0;line-height:1;}
+  .theme-toggle:hover{border-color:var(--border-focus);transform:scale(1.05);}
+  .theme-toggle .icon-sun,.theme-toggle .icon-moon{display:none;}
+  :root .theme-toggle .icon-moon{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-sun{display:block;}
+  [data-theme="dark"] .theme-toggle .icon-moon{display:none;}
+
+  .header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  .header h1{font-family:var(--font-serif);font-weight:300;font-size:1.1rem;color:var(--text-secondary);}
+  .header h1 em{color:var(--project);font-style:normal;}
+  .new-project-btn{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--project);background:var(--project-dim);border:1px solid var(--project-border);border-radius:20px;padding:6px 14px;cursor:pointer;transition:all .2s;margin-right:36px;}
+  .new-project-btn:hover{background:var(--surface-hover);border-color:var(--project);}
+
+  .state{display:none;}.state.active{display:block;}
+
+  /* Project list */
+  .project-grid{display:flex;flex-direction:column;gap:12px;}
+  .project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;box-shadow:var(--shadow-sm);}
+  .project-card:hover{border-color:var(--project-border);box-shadow:var(--shadow-md);transform:translateY(-1px);}
+  .project-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+  .project-icon{font-size:1.3rem;flex-shrink:0;margin-top:2px;}
+  .project-info{flex:1;min-width:0;}
+  .project-name{font-family:var(--font-serif);font-size:1.05rem;font-weight:500;color:var(--text-primary);line-height:1.3;margin-bottom:4px;}
+  .project-desc{font-family:var(--font-serif);font-size:.78rem;font-style:italic;color:var(--text-muted);line-height:1.5;}
+  .project-stats{display:flex;gap:12px;margin-top:10px;}
+  .project-stat{font-size:.55rem;color:var(--text-faint);letter-spacing:.04em;display:flex;align-items:center;gap:4px;}
+  .project-stat strong{color:var(--text-muted);font-weight:500;}
+  .project-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+  .project-tag{font-size:.5rem;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(124,92,191,.1);border-radius:10px;padding:2px 7px;}
+  [data-theme="dark"] .project-tag{border-color:rgba(167,139,250,.15);}
+  .project-progress{margin-top:12px;display:flex;align-items:center;gap:10px;}
+  .progress-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--project);border-radius:2px;transition:width .3s;}
+  .progress-label{font-size:.5rem;color:var(--text-faint);letter-spacing:.04em;}
+
+  /* Project detail view */
+  .detail-back{font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted);background:none;border:none;cursor:pointer;margin-bottom:16px;letter-spacing:.04em;transition:color .2s;}
+  .detail-back:hover{color:var(--text-secondary);}
+  .detail-header{margin-bottom:24px;}
+  .detail-title{font-family:var(--font-serif);font-size:1.4rem;font-weight:500;color:var(--text-primary);margin-bottom:6px;}
+  .detail-desc{font-family:var(--font-serif);font-size:.85rem;font-style:italic;color:var(--text-muted);line-height:1.5;margin-bottom:12px;}
+  .detail-meta{display:flex;gap:12px;flex-wrap:wrap;}
+  .detail-stat{font-size:.58rem;color:var(--text-faint);letter-spacing:.04em;}
+
+  /* Sections within project */
+  .section{margin-bottom:28px;}
+  .section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .section-title{font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);font-weight:500;}
+  .section-count{font-size:.55rem;color:var(--text-faint);}
+
+  /* Items within sections */
+  .item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.04);}
+  [data-theme="dark"] .item{border-bottom-color:rgba(255,255,255,.03);}
+  .item:last-child{border-bottom:none;}
+  .item-type{font-size:.48rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:4px;flex-shrink:0;margin-top:2px;color:var(--text-muted);background:var(--surface-alt);}
+  .item-content{flex:1;min-width:0;}
+  .item-title{font-family:var(--font-serif);font-size:.82rem;font-weight:400;color:var(--text-secondary);line-height:1.4;}
+  .item-meta{font-size:.55rem;color:var(--text-faint);margin-top:2px;}
+  .item-excerpt{font-family:var(--font-serif);font-size:.75rem;font-style:italic;color:var(--text-muted);margin-top:4px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .item-remove{font-size:.5rem;color:var(--text-faint);background:none;border:none;cursor:pointer;padding:4px;opacity:0;transition:opacity .2s,color .2s;}
+  .item:hover .item-remove{opacity:1;}
+  .item-remove:hover{color:var(--text-muted);}
+
+  /* Notes area in detail */
+  .project-notes{margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);}
+  .notes-label{font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--project);font-weight:500;margin-bottom:8px;}
+  .notes-textarea{width:100%;background:transparent;border:none;color:var(--text-primary);font-family:var(--font-body);font-size:.88rem;line-height:1.7;outline:none;resize:none;min-height:60px;}
+  .notes-textarea::placeholder{color:var(--text-ghost);font-style:italic;font-family:var(--font-serif);}
+
+  /* Action buttons at bottom of detail */
+  .detail-actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+  .detail-action{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;}
+  .detail-action:hover{border-color:var(--border-focus);color:var(--text-secondary);}
+  .detail-action.primary{color:var(--project);border-color:var(--project-border);}
+  .detail-action.primary:hover{background:var(--project-dim);}
+
+  /* Suggested items */
+  .suggested{margin-top:20px;padding:14px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);}
+  .suggested-label{font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);font-weight:500;margin-bottom:10px;}
+  .suggested-item{display:flex;align-items:center;gap:8px;padding:6px 0;}
+  .suggested-title{font-family:var(--font-serif);font-size:.78rem;color:var(--text-muted);flex:1;}
+  .suggested-add{font-size:.48rem;color:var(--project);background:var(--project-dim);border:1px solid var(--project-border);border-radius:4px;padding:3px 8px;cursor:pointer;transition:all .2s;letter-spacing:.04em;text-transform:uppercase;}
+  .suggested-add:hover{background:var(--surface-hover);}
+
+  @media(max-width:480px){body{padding:24px 16px;}.notes-textarea{font-size:16px;}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()"><span class="icon-sun">☀</span><span class="icon-moon">☽</span></button>
+
+<div class="container">
+  <div class="header">
+    <h1>retrieve <em>·</em> projects</h1>
+    <button class="new-project-btn" onclick="showState('new')">+ new project</button>
+  </div>
+
+  <!-- Project List -->
+  <div class="state active" id="state-list">
+    <div class="project-grid">
+
+      <div class="project-card" onclick="showState('detail')">
+        <div class="project-card-top">
+          <span class="project-icon">📝</span>
+          <div class="project-info">
+            <div class="project-name">Blog: RAG Chunking Strategies Compared</div>
+            <div class="project-desc">Comparing recursive vs semantic chunking with benchmark data. Target: publish on softsalinas.com + LinkedIn.</div>
+          </div>
+        </div>
+        <div class="project-tags">
+          <span class="project-tag">rag</span>
+          <span class="project-tag">blog</span>
+        </div>
+        <div class="project-stats">
+          <span class="project-stat"><strong>7</strong> items</span>
+          <span class="project-stat"><strong>2</strong> articles</span>
+          <span class="project-stat"><strong>3</strong> notes</span>
+          <span class="project-stat"><strong>1</strong> takeaway</span>
+          <span class="project-stat">updated 2h ago</span>
+        </div>
+        <div class="project-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+          <span class="progress-label">drafting</span>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-card-top">
+          <span class="project-icon">🏗️</span>
+          <div class="project-info">
+            <div class="project-name">RAG Notebook — Architecture Decisions</div>
+            <div class="project-desc">Collecting all research and notes that inform the notebook's technical architecture.</div>
+          </div>
+        </div>
+        <div class="project-tags">
+          <span class="project-tag">rag</span>
+          <span class="project-tag">infra</span>
+        </div>
+        <div class="project-stats">
+          <span class="project-stat"><strong>12</strong> items</span>
+          <span class="project-stat"><strong>5</strong> articles</span>
+          <span class="project-stat"><strong>4</strong> notes</span>
+          <span class="project-stat"><strong>2</strong> conversations</span>
+          <span class="project-stat">updated 1d ago</span>
+        </div>
+        <div class="project-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+          <span class="progress-label">building</span>
+        </div>
+      </div>
+
+      <div class="project-card">
+        <div class="project-card-top">
+          <span class="project-icon">🎯</span>
+          <div class="project-info">
+            <div class="project-name">SF Job Search — Portfolio Prep</div>
+            <div class="project-desc">Everything related to the AI Engineer role transition and portfolio gaps.</div>
+          </div>
+        </div>
+        <div class="project-tags">
+          <span class="project-tag">career</span>
+        </div>
+        <div class="project-stats">
+          <span class="project-stat"><strong>8</strong> items</span>
+          <span class="project-stat">updated 3d ago</span>
+        </div>
+        <div class="project-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+          <span class="progress-label">collecting</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Project Detail -->
+  <div class="state" id="state-detail">
+    <button class="detail-back" onclick="showState('list')">← all projects</button>
+
+    <div class="detail-header">
+      <div class="detail-title">Blog: RAG Chunking Strategies Compared</div>
+      <div class="detail-desc">Comparing recursive vs semantic chunking with benchmark data. Target: publish on softsalinas.com + LinkedIn.</div>
+      <div class="detail-meta">
+        <span class="detail-stat">7 items</span>
+        <span class="detail-stat">created Mar 31</span>
+        <span class="detail-stat">status: drafting</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Articles</span>
+        <span class="section-count">2</span>
+      </div>
+      <div class="item">
+        <span class="item-type">url</span>
+        <div class="item-content">
+          <div class="item-title">Best Chunking Strategies for RAG in 2026</div>
+          <div class="item-meta">firecrawl.dev · 22 chunks · Mar 29</div>
+          <div class="item-excerpt">Recursive character splitting at 400-512 tokens with 10-20% overlap works well for most text content and is the recommended starting point.</div>
+        </div>
+        <button class="item-remove" title="Remove from project">×</button>
+      </div>
+      <div class="item">
+        <span class="item-type">url</span>
+        <div class="item-content">
+          <div class="item-title">The 2026 RAG Performance Paradox: Why Simpler Chunking Outperforms</div>
+          <div class="item-meta">ragaboutit.com · 18 chunks · Mar 30</div>
+          <div class="item-excerpt">FloTorch's February 2026 study placed recursive 512-token splitting first at 69% accuracy, while semantic chunking landed at 54%.</div>
+        </div>
+        <button class="item-remove" title="Remove from project">×</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">My Notes &amp; Thinking</span>
+        <span class="section-count">4</span>
+      </div>
+      <div class="item">
+        <span class="item-type">takeaway</span>
+        <div class="item-content">
+          <div class="item-title">My takeaway on chunking benchmarks</div>
+          <div class="item-meta">study session · Mar 31</div>
+          <div class="item-excerpt">Recursive splitting wins not because it's theoretically optimal but because semantic creates too many tiny fragments.</div>
+        </div>
+        <button class="item-remove">×</button>
+      </div>
+      <div class="item">
+        <span class="item-type">handwritten</span>
+        <div class="item-content">
+          <div class="item-title">Handwritten: chunking as the silent make-or-break decision</div>
+          <div class="item-meta">handwritten · 📷 · Mar 31</div>
+        </div>
+        <button class="item-remove">×</button>
+      </div>
+      <div class="item">
+        <span class="item-type">dialogue</span>
+        <div class="item-content">
+          <div class="item-title">Chunking: the decision that silently makes or breaks everything</div>
+          <div class="item-meta">dialogue session · 276 words · 1 week ago</div>
+        </div>
+        <button class="item-remove">×</button>
+      </div>
+      <div class="item">
+        <span class="item-type">paste</span>
+        <div class="item-content">
+          <div class="item-title">"80% of RAG failures trace back to ingestion, not the LLM"</div>
+          <div class="item-meta">twitter capture · Mar 28</div>
+        </div>
+        <button class="item-remove">×</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Conversations</span>
+        <span class="section-count">1</span>
+      </div>
+      <div class="item">
+        <span class="item-type">convo</span>
+        <div class="item-content">
+          <div class="item-title">RAG notebook architecture discussion with Claude</div>
+          <div class="item-meta">claude.ai · 14 exchanges · 3 highlighted · Apr 2</div>
+        </div>
+        <button class="item-remove">×</button>
+      </div>
+    </div>
+
+    <!-- Project notes -->
+    <div class="project-notes">
+      <div class="notes-label">project notes — your outline &amp; draft ideas</div>
+      <textarea class="notes-textarea" placeholder="blog angle, outline, key arguments…">Angle: "The counterintuitive truth about RAG chunking"
+- Lead with the FloTorch benchmark surprise
+- My own handwritten note about intuition vs data
+- The practical recommendation: start with 512 recursive, measure, only add complexity when metrics demand it
+- End with: this is exactly the eval-first mindset Hamel advocates
+
+Target: 800-1200 words. Publish on softsalinas.com, cross-post to LinkedIn.</textarea>
+    </div>
+
+    <!-- Suggested items from corpus -->
+    <div class="suggested">
+      <div class="suggested-label">suggested from your corpus</div>
+      <div class="suggested-item">
+        <span class="suggested-title">Weaviate: Chunking Strategies to Improve RAG Performance</span>
+        <button class="suggested-add" onclick="this.textContent='added';this.style.pointerEvents='none';">+ add</button>
+      </div>
+      <div class="suggested-item">
+        <span class="suggested-title">Building Production RAG: Architecture, Chunking, Evaluation</span>
+        <button class="suggested-add" onclick="this.textContent='added';this.style.pointerEvents='none';">+ add</button>
+      </div>
+      <div class="suggested-item">
+        <span class="suggested-title">Handwritten note: eval pipeline design</span>
+        <button class="suggested-add" onclick="this.textContent='added';this.style.pointerEvents='none';">+ add</button>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button class="detail-action primary">💬 discuss this project</button>
+      <button class="detail-action primary">✍ start composing</button>
+      <button class="detail-action">🔍 find more items</button>
+      <button class="detail-action">📤 export collection</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleTheme(){const h=document.documentElement;if(h.getAttribute('data-theme')==='dark'){h.removeAttribute('data-theme');localStorage.setItem('theme','light');}else{h.setAttribute('data-theme','dark');localStorage.setItem('theme','dark');}}
+  (function(){const s=localStorage.getItem('theme');if(s==='dark')document.documentElement.setAttribute('data-theme','dark');else if(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.setAttribute('data-theme','dark');})();
+
+  function showState(name){document.querySelectorAll('.state').forEach(s=>s.classList.remove('active'));document.getElementById(`state-${name}`).classList.add('active');window.scrollTo(0,0);}
+
+  // Auto-resize notes
+  document.querySelector('.notes-textarea').addEventListener('input',function(){this.style.height='auto';this.style.height=this.scrollHeight+'px';});
+</script>
+</body>
+</html>

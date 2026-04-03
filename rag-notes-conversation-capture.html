@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capture — Conversation Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-alt: #f9f7f3;
+    --surface-hover: #f0efec;
+    --border: #dddad3;
+    --border-focus: #b8b4ab;
+    --text-primary: #2c2a26;
+    --text-secondary: #5c5850;
+    --text-muted: #9b9588;
+    --text-faint: #c4bfb4;
+    --text-ghost: #ddd9d0;
+    --accent: #7c5cbf;
+    --accent-dim: rgba(124, 92, 191, 0.06);
+    --human: #3d6b8e;
+    --human-bg: rgba(61, 107, 142, 0.04);
+    --human-border: rgba(61, 107, 142, 0.12);
+    --ai: #7c5cbf;
+    --ai-bg: rgba(124, 92, 191, 0.03);
+    --ai-border: rgba(124, 92, 191, 0.1);
+    --highlight: #c9952e;
+    --highlight-bg: rgba(201, 149, 46, 0.07);
+    --highlight-border: rgba(201, 149, 46, 0.25);
+    --success: #3a9a6e;
+    --success-dim: rgba(58, 154, 110, 0.06);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.07);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-serif: 'Newsreader', serif;
+    --font-body: 'Lora', serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0e0f11;
+    --surface: #16171b;
+    --surface-alt: #1a1b1f;
+    --surface-hover: #1e1f24;
+    --border: #2a2b31;
+    --border-focus: #4a4b55;
+    --text-primary: #d4d4d8;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+    --text-faint: #3a3a40;
+    --text-ghost: #2a2a30;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --human: #6aa4cc;
+    --human-bg: rgba(106, 164, 204, 0.06);
+    --human-border: rgba(106, 164, 204, 0.15);
+    --ai: #a78bfa;
+    --ai-bg: rgba(167, 139, 250, 0.04);
+    --ai-border: rgba(167, 139, 250, 0.12);
+    --highlight: #d4a853;
+    --highlight-bg: rgba(212, 168, 83, 0.08);
+    --highlight-border: rgba(212, 168, 83, 0.25);
+    --success: #6ee7b7;
+    --success-dim: rgba(110, 231, 183, 0.08);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-lg: 0 6px 24px rgba(0,0,0,0.35);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:var(--bg); color:var(--text-primary);
+    font-family:var(--font-mono); font-weight:300;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:36px 20px; -webkit-font-smoothing:antialiased;
+    transition:background 0.35s ease, color 0.35s ease;
+  }
+  .container { width:100%; max-width:620px; }
+
+  .theme-toggle {
+    position:fixed; top:20px; right:20px; width:40px; height:40px;
+    border-radius:50%; background:var(--surface); border:1px solid var(--border);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:1rem; transition:all 0.3s ease;
+    box-shadow:var(--shadow-sm); z-index:50; padding:0; line-height:1;
+  }
+  .theme-toggle:hover { border-color:var(--border-focus); transform:scale(1.05); }
+  .theme-toggle .icon-sun,.theme-toggle .icon-moon { display:none; }
+  :root .theme-toggle .icon-moon { display:block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display:block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display:none; }
+
+  .header {
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:32px; padding-bottom:16px; border-bottom:1px solid var(--border);
+  }
+  .header h1 {
+    font-family:var(--font-serif); font-weight:300;
+    font-size:1.1rem; letter-spacing:0.02em; color:var(--text-secondary);
+  }
+  .header h1 em { color:var(--accent); font-style:normal; }
+  .corpus-count {
+    font-size:0.7rem; color:var(--text-muted);
+    letter-spacing:0.08em; text-transform:uppercase; margin-right:36px;
+  }
+
+  .state { display:none; }
+  .state.active { display:block; }
+
+  /* URL Input */
+  .url-section { margin-bottom:8px; }
+  .url-input-wrap { position:relative; }
+  .url-input {
+    width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text-primary);
+    font-family:var(--font-mono); font-size:0.85rem; font-weight:300;
+    padding:14px 16px 14px 40px; outline:none;
+    transition:border-color 0.25s ease, box-shadow 0.25s ease;
+    box-shadow:var(--shadow-sm);
+  }
+  .url-input::placeholder { color:var(--text-ghost); font-style:italic; font-family:var(--font-serif); }
+  .url-input:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-dim),var(--shadow-sm); }
+  .url-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:0.85rem; color:var(--text-faint); pointer-events:none; }
+
+  .url-hint { font-size:0.6rem; color:var(--text-faint); margin-top:8px; padding:0 4px; }
+  .url-hint kbd {
+    display:inline-block; padding:1px 5px; background:var(--surface);
+    border:1px solid var(--border); border-radius:4px;
+    font-family:var(--font-mono); font-size:0.55rem; margin:0 1px;
+  }
+
+  .supported-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:12px; padding:0 4px;
+  }
+  .badge {
+    font-size:0.5rem; letter-spacing:0.06em; text-transform:uppercase;
+    padding:3px 8px; border-radius:4px;
+    border:1px solid var(--border); color:var(--text-faint);
+  }
+
+  /* Fetching */
+  .fetch-indicator {
+    display:none; align-items:center; gap:10px;
+    margin-top:20px; padding:14px 16px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow-sm);
+  }
+  .fetch-indicator.active { display:flex; }
+  .fetch-spinner {
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid var(--border); border-top-color:var(--accent);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .fetch-text { font-size:0.7rem; color:var(--text-muted); font-family:var(--font-serif); font-style:italic; }
+
+  /* Conversation Preview */
+  .convo-card {
+    margin-top:20px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); overflow:hidden;
+    opacity:0; transform:translateY(8px);
+    transition:opacity 0.4s ease, transform 0.4s ease;
+  }
+  .convo-card.visible { opacity:1; transform:translateY(0); }
+
+  .convo-header {
+    padding:14px 18px; background:var(--surface-alt);
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .convo-platform {
+    font-size:0.5rem; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:4px; font-weight:500;
+  }
+  .convo-platform.claude { color:var(--ai); background:var(--ai-bg); border:1px solid var(--ai-border); }
+  .convo-platform.chatgpt { color:var(--human); background:var(--human-bg); border:1px solid var(--human-border); }
+  .convo-title {
+    font-family:var(--font-serif); font-size:0.92rem; font-weight:500;
+    color:var(--text-primary); flex:1; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .convo-meta {
+    display:flex; gap:12px; padding:10px 18px;
+    border-bottom:1px solid var(--border); background:var(--surface-alt);
+  }
+  .convo-stat {
+    font-size:0.55rem; color:var(--text-muted); letter-spacing:0.04em;
+  }
+  .convo-stat strong { font-weight:500; color:var(--text-secondary); }
+
+  /* Message list */
+  .messages { max-height:420px; overflow-y:auto; padding:6px 0; }
+  .messages::-webkit-scrollbar { width:4px; }
+  .messages::-webkit-scrollbar-track { background:transparent; }
+  .messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  .msg {
+    padding:12px 18px; border-bottom:1px solid var(--border);
+    cursor:pointer; transition:background 0.2s ease;
+    position:relative;
+  }
+  .msg:last-child { border-bottom:none; }
+  .msg:hover { background:var(--surface-hover); }
+  .msg.highlighted { background:var(--highlight-bg); border-left:3px solid var(--highlight); }
+
+  .msg-role {
+    font-size:0.48rem; letter-spacing:0.1em; text-transform:uppercase;
+    font-weight:500; margin-bottom:5px;
+  }
+  .msg-role.human { color:var(--human); }
+  .msg-role.ai { color:var(--ai); }
+
+  .msg-text {
+    font-family:var(--font-serif); font-size:0.82rem;
+    line-height:1.6; color:var(--text-secondary);
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  }
+
+  .msg-star {
+    position:absolute; top:12px; right:14px;
+    font-size:0.65rem; color:var(--text-faint); opacity:0;
+    transition:opacity 0.2s ease;
+  }
+  .msg:hover .msg-star { opacity:1; }
+  .msg.highlighted .msg-star { opacity:1; color:var(--highlight); }
+
+  .highlight-hint {
+    padding:8px 18px; font-size:0.55rem; color:var(--text-faint);
+    font-family:var(--font-serif); font-style:italic;
+    text-align:center; border-top:1px solid var(--border);
+    background:var(--surface-alt);
+  }
+
+  /* Reflection */
+  .reflection-section {
+    margin-top:20px; padding:18px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow-sm);
+  }
+  .reflection-label {
+    font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--text-muted); font-weight:500; margin-bottom:4px;
+  }
+  .reflection-prompt {
+    font-family:var(--font-serif); font-style:italic;
+    font-size:0.75rem; color:var(--text-faint); margin-bottom:12px; line-height:1.5;
+  }
+  .reflection-input {
+    width:100%; background:var(--surface-alt);
+    border:1px solid var(--border); border-radius:8px;
+    color:var(--text-primary); font-family:var(--font-body);
+    font-size:0.88rem; font-weight:400;
+    padding:12px 14px; outline:none; resize:none;
+    line-height:1.7; min-height:50px; max-height:140px;
+    transition:border-color 0.25s ease;
+  }
+  .reflection-input:focus { border-color:var(--border-focus); }
+  .reflection-input::placeholder { color:var(--text-ghost); font-style:italic; font-family:var(--font-serif); }
+
+  /* Tags */
+  .tag-row {
+    display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+    margin-top:16px; min-height:24px;
+  }
+  .tag-label {
+    font-size:0.55rem; font-weight:500; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--text-muted); margin-right:4px;
+  }
+  .tag-placeholder {
+    font-size:0.6rem; font-style:italic; font-family:var(--font-serif);
+    color:var(--text-faint); opacity:0.6;
+  }
+  .tag {
+    padding:4px 10px; font-family:var(--font-mono); font-size:0.6rem;
+    letter-spacing:0.06em; color:var(--text-muted);
+    background:var(--surface-alt); border:1px solid var(--border);
+    border-radius:20px; cursor:pointer; transition:all 0.2s ease;
+    user-select:none; opacity:0; transform:translateY(4px) scale(0.92);
+    animation:tag-appear 0.35s ease-out forwards;
+  }
+  .tag.auto { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .tag.auto:hover { background:transparent; color:var(--text-muted); border-color:var(--border); text-decoration:line-through; }
+  .tag.dismissed { opacity:0.3; text-decoration:line-through; }
+  .tag-add {
+    padding:4px 10px; font-family:var(--font-mono); font-size:0.6rem;
+    color:var(--text-faint); background:transparent;
+    border:1px dashed var(--border); border-radius:20px;
+    cursor:pointer; transition:all 0.2s ease;
+    opacity:0; animation:tag-appear 0.35s ease-out forwards;
+  }
+  .tag-add:hover { border-color:var(--border-focus); color:var(--text-muted); border-style:solid; }
+  @keyframes tag-appear { to { opacity:1; transform:translateY(0) scale(1); } }
+
+  /* Save button */
+  .save-btn {
+    width:100%; margin-top:16px; padding:14px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text-secondary);
+    font-family:var(--font-mono); font-size:0.75rem; font-weight:400;
+    letter-spacing:0.1em; text-transform:uppercase;
+    cursor:pointer; transition:all 0.3s ease; box-shadow:var(--shadow-sm);
+    display:none;
+  }
+  .save-btn.visible { display:block; }
+  .save-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .save-btn:active { transform:scale(0.99); }
+  .save-btn.saved { border-color:var(--success); color:var(--success); background:var(--success-dim); pointer-events:none; }
+
+  .ripple-container { position:fixed; top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100; }
+  .ripple { position:absolute; border-radius:50%; border:1px solid var(--success); opacity:0; animation:ripple-out 1.2s ease-out forwards; }
+  @keyframes ripple-out { 0%{width:0;height:0;opacity:0.3;} 100%{width:300px;height:300px;opacity:0;} }
+
+  /* Recent conversations */
+  .recent { margin-top:44px; padding-top:24px; border-top:1px solid var(--border); }
+  .recent-header { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; }
+  .recent-item {
+    padding:12px 0; border-bottom:1px solid rgba(0,0,0,0.05);
+    display:flex; align-items:flex-start; gap:10px;
+  }
+  [data-theme="dark"] .recent-item { border-bottom-color:rgba(255,255,255,0.04); }
+  .recent-platform { font-size:0.48rem; letter-spacing:0.08em; text-transform:uppercase; padding:3px 7px; border-radius:4px; flex-shrink:0; margin-top:2px; font-weight:500; }
+  .recent-platform.claude { color:var(--ai); background:var(--ai-bg); }
+  .recent-platform.chatgpt { color:var(--human); background:var(--human-bg); }
+  .recent-content { flex:1; min-width:0; }
+  .recent-title { font-family:var(--font-serif); font-size:0.85rem; font-weight:400; color:var(--text-secondary); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .recent-meta { font-size:0.55rem; color:var(--text-faint); margin-top:3px; }
+  .recent-reflection { font-family:var(--font-serif); font-style:italic; font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+
+  @media (max-width:480px) {
+    body { padding:24px 16px; }
+    .url-input,.reflection-input { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">
+  <span class="icon-sun">☀</span>
+  <span class="icon-moon">☽</span>
+</button>
+
+<div class="container">
+  <div class="header">
+    <h1>capture <em>·</em> conversation</h1>
+    <span class="corpus-count">247 items in corpus</span>
+  </div>
+
+  <!-- STATE 1: URL input -->
+  <div class="state active" id="state-input">
+    <div class="url-section">
+      <div class="url-input-wrap">
+        <span class="url-icon">💬</span>
+        <input type="url" class="url-input" id="url-input"
+          placeholder="paste a shared conversation link…" spellcheck="false" />
+      </div>
+      <div class="url-hint"><kbd>Enter</kbd> to fetch conversation</div>
+      <div class="supported-badge">
+        <span class="badge">claude.ai/share/…</span>
+        <span class="badge">chatgpt.com/share/…</span>
+      </div>
+    </div>
+
+    <div class="fetch-indicator" id="fetch-indicator">
+      <div class="fetch-spinner"></div>
+      <span class="fetch-text" id="fetch-text">fetching conversation…</span>
+    </div>
+  </div>
+
+  <!-- STATE 2: Conversation preview -->
+  <div class="state" id="state-preview">
+    <div class="convo-card visible" id="convo-card">
+      <div class="convo-header">
+        <span class="convo-platform" id="convo-platform">claude</span>
+        <span class="convo-title" id="convo-title"></span>
+      </div>
+      <div class="convo-meta" id="convo-meta">
+        <span class="convo-stat"><strong id="stat-turns">0</strong> exchanges</span>
+        <span class="convo-stat">~<strong id="stat-tokens">0</strong> tokens</span>
+        <span class="convo-stat"><strong id="stat-highlighted">0</strong> highlighted</span>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="highlight-hint">click any exchange to highlight key moments for your corpus</div>
+    </div>
+
+    <div class="reflection-section">
+      <div class="reflection-label">✍ what did this conversation clarify?</div>
+      <div class="reflection-prompt">
+        Your questions reveal what you were trying to understand. What clicked?
+      </div>
+      <textarea class="reflection-input" id="reflection-input"
+        placeholder="the key thing I got from this conversation is…"
+        rows="2"></textarea>
+    </div>
+
+    <div class="tag-row" id="tag-row">
+      <span class="tag-label">tags</span>
+      <span class="tag-placeholder">auto-generated from conversation</span>
+    </div>
+
+    <button class="save-btn visible" id="save-btn" onclick="saveConvo()">
+      Save to corpus
+    </button>
+  </div>
+
+  <!-- Recent -->
+  <div class="recent">
+    <div class="recent-header">Saved conversations</div>
+
+    <div class="recent-item">
+      <span class="recent-platform claude">claude</span>
+      <div class="recent-content">
+        <div class="recent-title">RAG notebook architecture and portfolio gaps discussion</div>
+        <div class="recent-meta">14 exchanges · 3 highlighted · tagged: rag, career · 2 hours ago</div>
+        <div class="recent-reflection">The key insight was that building a tool I actually use daily tells a better portfolio story than any demo</div>
+      </div>
+    </div>
+
+    <div class="recent-item">
+      <span class="recent-platform chatgpt">chatgpt</span>
+      <div class="recent-content">
+        <div class="recent-title">Comparing embedding models for personal knowledge bases</div>
+        <div class="recent-meta">8 exchanges · 2 highlighted · tagged: rag, infra · 1 day ago</div>
+        <div class="recent-reflection">BGE-M3 is the practical default for self-hosted, but Voyage AI leads benchmarks</div>
+      </div>
+    </div>
+
+    <div class="recent-item">
+      <span class="recent-platform claude">claude</span>
+      <div class="recent-content">
+        <div class="recent-title">First principles of UI design for learning tools</div>
+        <div class="recent-meta">11 exchanges · 5 highlighted · tagged: learning · 3 days ago</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ripple-container" id="ripple-container"></div>
+
+<script>
+  // Theme
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme'); localStorage.setItem('theme','light');
+    } else {
+      html.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark');
+    }
+  }
+  (function() {
+    const s = localStorage.getItem('theme');
+    if (s === 'dark') document.documentElement.setAttribute('data-theme','dark');
+    else if (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme','dark');
+  })();
+
+  // Simulated conversations
+  const sampleConvos = {
+    claude: {
+      title: 'Building a RAG notebook system for AI engineering learning',
+      exchanges: [
+        { human: "I want to build something that I could use as I continue my AI engineering learning path. A RAG notebook system that keeps both articles I read and notes I write. What do you think?", ai: "That's a much stronger idea honestly. You'd be building the tool and using the tool simultaneously. Every article you read, every note you take — it all feeds the system. Your learning becomes the evolving corpus. And the query patterns would be genuinely complex — you'd be asking things like 'what did that article say about prefix caching that relates to my notes on multi-fighter inference?'" },
+        { human: "From first principles, what makes RAG truly useful and necessary?", ai: "LLMs have a fundamental constraint: they only know what was in their training data, frozen at a point in time. RAG exists to solve this by grounding generation in real, retrieved evidence. The core promise is: instead of asking the model to remember, give it the right documents at inference time and ask it to read. It becomes essential when information changes frequently, is private or proprietary, or accuracy matters enough that hallucination is unacceptable." },
+        { human: "What makes a RAG system world-class vs mediocre?", ai: "Most RAG demos stop at 'chunk documents, embed them, retrieve top-k, stuff into prompt.' The hard problems that separate real systems: retrieval quality (wrong chunks = confidently wrong answers), knowing what you don't know, query understanding for messy questions, freshness and ingestion of evolving data, and evaluation — how do you know it's actually working? Without an eval pipeline, you're guessing." },
+        { human: "I want to include handwritten notes via OCR. Research shows writing by hand boosts memory.", ai: "Your handwriting insight is backed by solid research. Mueller and Oppenheimer's findings show handwriting forces synthesis and compression because you can't write fast enough to transcribe verbatim. When you photograph a handwritten note, that artifact represents a higher quality cognitive encoding than a typed note. Your system should store both the image and the extracted text — seeing your own handwriting later triggers visual memory in ways plain text never will." },
+        { human: "What about evals? Why should that be part of the RAG system?", ai: "Without evals, you're flying blind. You can't tell by looking at individual responses if the system is working. Your system works fine with 50 documents, but at 500 the retrieval quality quietly drops. You change chunking strategy and it improves articles but silently breaks notes. Evals make the invisible visible — they turn 'I think it's working' into 'retrieval recall is 84% and faithfulness is 91%.' That feedback loop is where the engineering lives." },
+        { human: "Lets start designing the UI from first principles.", ai: "First principles for UI means asking: what is fundamentally true about humans interacting with information? Key truths: humans have limited working memory (4-7 items), attention is depletable, recognition beats recall, learning happens through connection not collection, certain friction strengthens learning (desirable difficulties), and context switching is catastrophically expensive. Design from these truths and your tool won't look like any existing app." },
+      ]
+    },
+    chatgpt: {
+      title: 'Comparing vector databases for personal RAG projects',
+      exchanges: [
+        { human: "I'm building a personal RAG notebook and need to choose a vector database. What are my options for something I can run locally on an M2 Max?", ai: "For local development on an M2 Max with 96GB unified memory, you have several strong options. ChromaDB is the easiest to start with — it's Python-native, runs in-process, and requires zero infrastructure. Qdrant offers better performance at scale with a Rust backend. Weaviate provides hybrid search out of the box. For your use case, I'd recommend starting with ChromaDB for prototyping, then evaluating whether you need to migrate as your corpus grows." },
+        { human: "What about pgvector? I already know PostgreSQL.", ai: "pgvector is an excellent choice if you want to consolidate your stack. It adds vector similarity search directly to PostgreSQL, so your metadata, full-text search, and vector search all live in one database. The downside is that it's slower than purpose-built vector databases for pure ANN search at scale. But for a personal notebook with tens of thousands of documents, the performance difference is negligible, and the operational simplicity is a real advantage." },
+        { human: "How do I decide between ChromaDB and pgvector?", ai: "Ask yourself: do you want the fastest path to a working prototype (ChromaDB) or the most maintainable production architecture (pgvector)? ChromaDB gets you to 'hello world' in 10 minutes. pgvector requires PostgreSQL setup but gives you SQL for complex queries, ACID transactions, and you can add BM25 full-text search natively for hybrid retrieval without a separate system." },
+      ]
+    }
+  };
+
+  // URL handling
+  const urlInput = document.getElementById('url-input');
+
+  urlInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); fetchConvo(this.value.trim()); }
+  });
+  urlInput.addEventListener('paste', function() {
+    setTimeout(() => {
+      const val = this.value.trim();
+      if (/^https?:\/\//.test(val)) fetchConvo(val);
+    }, 100);
+  });
+
+  function detectPlatform(url) {
+    if (url.includes('claude.ai')) return 'claude';
+    if (url.includes('chatgpt.com') || url.includes('chat.openai.com')) return 'chatgpt';
+    return 'claude'; // default
+  }
+
+  function fetchConvo(url) {
+    if (!url) return;
+    const platform = detectPlatform(url);
+    const indicator = document.getElementById('fetch-indicator');
+    const fetchText = document.getElementById('fetch-text');
+
+    indicator.classList.add('active');
+    fetchText.textContent = 'fetching conversation…';
+    setTimeout(() => { fetchText.textContent = 'parsing exchanges…'; }, 700);
+    setTimeout(() => { fetchText.textContent = 'extracting structure…'; }, 1400);
+
+    setTimeout(() => {
+      indicator.classList.remove('active');
+      renderConversation(platform, sampleConvos[platform]);
+    }, 2000);
+  }
+
+  function renderConversation(platform, convo) {
+    document.getElementById('convo-platform').textContent = platform;
+    document.getElementById('convo-platform').className = `convo-platform ${platform}`;
+    document.getElementById('convo-title').textContent = convo.title;
+    document.getElementById('stat-turns').textContent = convo.exchanges.length;
+    document.getElementById('stat-tokens').textContent =
+      (convo.exchanges.reduce((sum, e) => sum + e.human.length + e.ai.length, 0) / 4).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('stat-highlighted').textContent = '0';
+
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+
+    convo.exchanges.forEach((exchange, i) => {
+      // Human message
+      const hMsg = document.createElement('div');
+      hMsg.className = 'msg';
+      hMsg.innerHTML = `
+        <span class="msg-star">★</span>
+        <div class="msg-role human">you</div>
+        <div class="msg-text">${exchange.human}</div>
+      `;
+      hMsg.onclick = () => toggleHighlight(hMsg);
+      container.appendChild(hMsg);
+
+      // AI message
+      const aMsg = document.createElement('div');
+      aMsg.className = 'msg';
+      aMsg.innerHTML = `
+        <span class="msg-star">★</span>
+        <div class="msg-role ai">${platform}</div>
+        <div class="msg-text">${exchange.ai}</div>
+      `;
+      aMsg.onclick = () => toggleHighlight(aMsg);
+      container.appendChild(aMsg);
+    });
+
+    // Auto-tag
+    const allText = convo.exchanges.map(e => e.human + ' ' + e.ai).join(' ');
+    autoTag(allText);
+
+    showState('preview');
+  }
+
+  function toggleHighlight(msgEl) {
+    msgEl.classList.toggle('highlighted');
+    const count = document.querySelectorAll('.msg.highlighted').length;
+    document.getElementById('stat-highlighted').textContent = count;
+  }
+
+  function showState(name) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(`state-${name}`).classList.add('active');
+  }
+
+  // Auto-resize
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+    });
+  });
+
+  // Tags
+  const tagDict = {
+    'rag':['rag','retrieval','chunking','chunk','embedding','vector','bm25','rerank','hybrid','corpus','ingest'],
+    'evals':['eval','metric','benchmark','faithfulness','relevancy','ragas','accuracy','measure','quality'],
+    'agents':['agent','agentic','mcp','tool use','openclaw','orchestrat'],
+    'infra':['deploy','docker','server','cloud','gpu','database','postgres','production','api'],
+    'learning':['learn','study','insight','principle','first principles','understand','design'],
+    'llm':['llm','language model','gpt','claude','qwen','mistral','transformer','token','context window','prompt'],
+    'career':['job','interview','portfolio','startup','career','transition','hiring']
+  };
+
+  function autoTag(text) {
+    const lower = text.toLowerCase();
+    let matches = [];
+    for (const [tag, kws] of Object.entries(tagDict)) {
+      let score = 0;
+      kws.forEach(kw => { if (lower.includes(kw)) score++; });
+      if (score > 0) matches.push({ tag, score });
+    }
+    matches.sort((a, b) => b.score - a.score);
+    const tags = matches.slice(0, 3).map(m => m.tag);
+    if (tags.length) showAutoTags(tags);
+  }
+
+  function showAutoTags(tags) {
+    const row = document.getElementById('tag-row');
+    row.innerHTML = '<span class="tag-label">tags</span>';
+    tags.forEach((name, i) => {
+      const t = document.createElement('span');
+      t.className = 'tag auto'; t.textContent = name;
+      t.style.animationDelay = `${i * 0.1}s`;
+      t.onclick = () => { t.classList.toggle('dismissed'); t.classList.toggle('auto'); };
+      row.appendChild(t);
+    });
+    const addBtn = document.createElement('span');
+    addBtn.className = 'tag-add'; addBtn.textContent = '+ add';
+    addBtn.style.animationDelay = `${tags.length * 0.1}s`;
+    addBtn.onclick = () => {
+      const n = prompt('Tag name:');
+      if (n && n.trim()) {
+        const t = document.createElement('span');
+        t.className = 'tag auto'; t.textContent = n.trim().toLowerCase();
+        t.style.animation = 'tag-appear 0.35s ease-out forwards';
+        t.onclick = () => { t.classList.toggle('dismissed'); t.classList.toggle('auto'); };
+        row.insertBefore(t, addBtn);
+      }
+    };
+    row.appendChild(addBtn);
+  }
+
+  // Save
+  function saveConvo() {
+    const btn = document.getElementById('save-btn');
+    btn.textContent = 'Saving…';
+
+    const highlighted = document.querySelectorAll('.msg.highlighted').length;
+    const rect = btn.getBoundingClientRect();
+    const c = document.getElementById('ripple-container');
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = (rect.left + rect.width/2 - 150) + 'px';
+    r.style.top = (rect.top + rect.height/2 - 150) + 'px';
+    c.appendChild(r);
+    setTimeout(() => r.remove(), 1200);
+
+    setTimeout(() => {
+      btn.textContent = `Saved · ${highlighted} exchanges highlighted`;
+      btn.classList.add('saved');
+      setTimeout(() => {
+        btn.textContent = 'Save to corpus';
+        btn.classList.remove('saved');
+        // Reset
+        showState('input');
+        urlInput.value = '';
+        document.getElementById('reflection-input').value = '';
+        const row = document.getElementById('tag-row');
+        row.innerHTML = '<span class="tag-label">tags</span><span class="tag-placeholder">auto-generated from conversation</span>';
+        urlInput.focus();
+      }, 1500);
+    }, 600);
+  }
+
+  window.addEventListener('load', () => urlInput.focus());
+</script>
+</body>
+</html>
