@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PageContainer } from '@/components/ui/PageContainer'
 import { ModeHeader } from '@/components/ui/ModeHeader'
+import { useRipple } from '@/components/ui/RippleContainer'
 import { useAutoTags } from '@/hooks/useAutoTags'
 import { useCaptureStore } from '@/stores/capture'
+import { ingestText, ingestUrl } from '@/lib/api'
 import styles from './BrowsingView.module.css'
 
 interface RecentItem {
@@ -11,7 +13,7 @@ interface RecentItem {
   title: string
   meta: string
   parts?: { label: string; value: string }[]
-  status: 'processing' | 'embedded'
+  status: 'processing' | 'embedded' | 'error'
 }
 
 export function BrowsingView() {
@@ -22,17 +24,16 @@ export function BrowsingView() {
   const [showNote, setShowNote] = useState(false)
   const [tags, setTags] = useState<{ name: string; auto: boolean; dismissed: boolean }[]>([])
   const [btnState, setBtnState] = useState<'idle' | 'capturing' | 'captured'>('idle')
-  const [recentItems, setRecentItems] = useState<RecentItem[]>([
-    { id: '1', type: 'bundle', title: '"80% of RAG failures trace back to ingestion, not the LLM"', meta: 'tagged: rag, evals', parts: [{ label: 'content', value: '91 chars' }, { label: 'source', value: 'blog.premai.io' }, { label: 'note', value: 'attached' }], status: 'embedded' },
-    { id: '2', type: 'url', title: 'Hybrid Search for RAG: BM25, SPLADE, and Vector Search', meta: 'blog.premai.io · 12 chunks · tagged: rag', status: 'embedded' },
-    { id: '3', type: 'paste', title: '"The abuse of generic metrics is endemic…" — Hamel Husain', meta: '137 chars · tagged: evals', status: 'processing' },
-    { id: '4', type: 'note', title: 'recursive 512-token splitting beats semantic chunking — counterintuitive', meta: '94 chars · tagged: rag', status: 'embedded' },
-  ])
+  const [error, setError] = useState<string | null>(null)
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
+  const sourceRef = useRef<HTMLInputElement>(null)
+  const captureBtnRef = useRef<HTMLButtonElement>(null)
   const { classify } = useAutoTags()
   const addCapture = useCaptureStore((s) => s.addCapture)
+  const { spawn, RippleOverlay } = useRipple()
 
   const isUrl = /^https?:\/\/\S+$/.test(content.trim()) && !content.includes('\n')
   const charCount = content.length + note.length
@@ -41,57 +42,80 @@ export function BrowsingView() {
     textareaRef.current?.focus()
   }, [])
 
+  // Auto-focus into revealed secondary fields
+  useEffect(() => {
+    if (showSource) setTimeout(() => sourceRef.current?.focus(), 150)
+  }, [showSource])
+  useEffect(() => {
+    if (showNote) setTimeout(() => noteRef.current?.focus(), 150)
+  }, [showNote])
+
   const autoResize = useCallback((el: HTMLTextAreaElement, max: number) => {
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, max) + 'px'
   }, [])
 
-  const capture = useCallback(() => {
+  const capture = useCallback(async () => {
     if (!content.trim() || btnState !== 'idle') return
 
     setBtnState('capturing')
+    setError(null)
+
+    // Spawn ripple from capture button center
+    if (captureBtnRef.current) {
+      const rect = captureBtnRef.current.getBoundingClientRect()
+      spawn(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    }
+
+    // Classify tags from content
     const allText = [content, note].filter(Boolean).join(' ')
     const autoTags = classify(allText)
+    const tagList = autoTags.length ? autoTags : ['untagged']
+    setTags(tagList.map((t) => ({ name: t, auto: true, dismissed: false })))
+    const activeTags = tagList
 
-    setTimeout(() => {
-      setTags(autoTags.length ? autoTags.map((t) => ({ name: t, auto: true, dismissed: false })) : [{ name: 'untagged', auto: true, dismissed: false }])
-    }, 300)
+    // Determine type for the recent item
+    const hasSource = sourceUrl.length > 0
+    const hasNote = note.length > 0
 
-    setTimeout(() => {
+    const title = content.length > 72 ? content.substring(0, 72) + '…' : content
+    const tempId = `r-${Date.now()}`
+
+    // Add processing item to recent list immediately
+    const newItem: RecentItem = {
+      id: tempId,
+      type: isUrl ? 'url' : (hasSource || hasNote) ? 'bundle' : content.length < 200 ? 'note' : 'paste',
+      title,
+      meta: isUrl ? 'scraping…' : `${content.length} chars`,
+      parts: (hasSource || hasNote) ? [
+        { label: 'content', value: `${content.length} chars` },
+        ...(hasSource ? [{ label: 'source', value: (() => { try { return new URL(sourceUrl).hostname } catch { return sourceUrl } })() }] : []),
+        ...(hasNote ? [{ label: 'note', value: `${note.length} chars` }] : []),
+      ] : undefined,
+      status: 'processing',
+    }
+    setRecentItems((prev) => [newItem, ...prev])
+    addCapture({ title, mode: 'browsing', status: 'processing' })
+
+    try {
+      const doc = isUrl
+        ? await ingestUrl(content.trim(), activeTags, note || undefined)
+        : await ingestText(content, activeTags, {
+            source_type: content.length < 200 && !hasSource && !hasNote ? 'note' : 'paste',
+            source_url: hasSource ? sourceUrl : undefined,
+            user_note: hasNote ? note : undefined,
+          })
+
+      // Update recent item with real data from server
+      const tagStr = doc.tags.length ? ` · tagged: ${doc.tags.join(', ')}` : ''
+      setRecentItems((prev) => prev.map((item) =>
+        item.id === tempId
+          ? { ...item, id: doc.id, title: doc.title || title, meta: (isUrl ? doc.source ?? '' : `${content.length} chars`) + tagStr, status: 'embedded' }
+          : item,
+      ))
       setBtnState('captured')
 
-      const hasSource = sourceUrl.length > 0
-      const hasNote = note.length > 0
-      let type = 'paste'
-      if (isUrl && !hasSource && !hasNote) type = 'url'
-      else if (!isUrl && !hasSource && !hasNote && content.length < 200) type = 'note'
-      if (hasSource || hasNote) type = 'bundle'
-
-      const title = content.length > 72 ? content.substring(0, 72) + '…' : content
-      const meta = isUrl ? 'scraping…' : `${content.length} chars`
-      const activeTags = tags.filter((t) => t.auto && !t.dismissed).map((t) => t.name)
-      const tagStr = activeTags.length ? ` · tagged: ${activeTags.join(', ')}` : ''
-
-      const newItem: RecentItem = {
-        id: `r-${Date.now()}`,
-        type,
-        title,
-        meta: meta + tagStr,
-        parts: type === 'bundle' ? [
-          { label: 'content', value: `${content.length} chars` },
-          ...(hasSource ? [{ label: 'source', value: (() => { try { return new URL(sourceUrl).hostname } catch { return sourceUrl } })() }] : []),
-          ...(hasNote ? [{ label: 'note', value: `${note.length} chars` }] : []),
-        ] : undefined,
-        status: 'processing',
-      }
-
-      setRecentItems((prev) => [newItem, ...prev])
-      addCapture({ title, mode: 'browsing', status: 'processing' })
-
-      setTimeout(() => {
-        setRecentItems((prev) => prev.map((item) => item.id === newItem.id ? { ...item, status: 'embedded' } : item))
-      }, 2500)
-
+      // Reset form after brief confirmation
       setTimeout(() => {
         setContent('')
         setSourceUrl('')
@@ -104,8 +128,15 @@ export function BrowsingView() {
           textareaRef.current.style.height = 'auto'
         }
       }, 1200)
-    }, 600)
-  }, [content, sourceUrl, note, isUrl, btnState, classify, tags, addCapture])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Capture failed'
+      setError(message)
+      setRecentItems((prev) => prev.map((item) =>
+        item.id === tempId ? { ...item, status: 'error', meta: message } : item,
+      ))
+      setBtnState('idle')
+    }
+  }, [content, sourceUrl, note, isUrl, btnState, classify, addCapture])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -155,6 +186,7 @@ export function BrowsingView() {
         <div className={`${styles.secondaryField} ${showSource ? styles.open : ''}`}>
           <div className={styles.fieldLabel}>source url</div>
           <input
+            ref={sourceRef}
             type="url"
             className={styles.secondaryInput}
             placeholder="https://twitter.com/…"
@@ -179,6 +211,12 @@ export function BrowsingView() {
           />
         </div>
       </div>
+
+      {error && (
+        <div className={styles.error} onClick={() => setError(null)}>
+          {error}
+        </div>
+      )}
 
       <div className={styles.captureHint}>
         <span className={styles.hintText}>
@@ -220,6 +258,7 @@ export function BrowsingView() {
       </div>
 
       <button
+        ref={captureBtnRef}
         className={`${styles.captureBtn} ${styles[btnState]}`}
         onClick={capture}
         disabled={btnState !== 'idle'}
@@ -245,12 +284,13 @@ export function BrowsingView() {
                 </div>
               )}
             </div>
-            <span className={`${styles.recentStatus} ${item.status === 'processing' ? styles.processing : ''}`}>
-              {item.status === 'processing' ? 'processing…' : 'embedded'}
+            <span className={`${styles.recentStatus} ${item.status === 'processing' ? styles.processing : ''} ${item.status === 'error' ? styles.errorStatus : ''}`}>
+              {item.status === 'processing' ? 'processing…' : item.status === 'error' ? 'failed' : 'embedded'}
             </span>
           </div>
         ))}
       </div>
+      <RippleOverlay />
     </PageContainer>
   )
 }
