@@ -190,13 +190,14 @@ All six ingestion views converted from HTML prototypes to React components with 
 - Connections surface only after takeaway is written
 - Save confirmation shows "3 pages + takeaway"
 
-**3f. Conversation Capture** (`rag-notes-conversation-capture.html`)
+**3f. Conversation Capture** (`rag-notes-conversation-capture.html`) — **ON HOLD**
 - URL input supporting claude.ai/share/ and chatgpt.com/share/ formats
 - Platform auto-detection with styled badges
 - Scrollable conversation transcript with human/AI message styling
 - Click-to-highlight on messages (gold highlight, counter in metadata)
 - "What did this conversation clarify?" reflection field
 - Saved conversations list with platform, title, exchange count, highlights
+- **Status:** Parked on `feature/conversation-import` branch. Cloudflare Turnstile blocks headless browser fetching of share pages. Nice-to-have feature, not core to the RAG showcase. Will revisit when WebLLM fallback (Phase B) is ready or if share page access improves.
 
 ### Step 4: Convert Retrieval Views ✓
 
@@ -378,7 +379,7 @@ User query → pgvector cosine (top 20) + BM25 tsvector (top 20) → RRF fusion 
 7. Chunking engine with routing by source_type
 8. Auto-tagging (keyword dictionary)
 9. OCR pipeline (Tesseract)
-10. Conversation parser (fetch share link HTML → parse turns)
+10. ~~Conversation parser (fetch share link HTML → parse turns)~~ — ON HOLD (see `feature/conversation-import` branch)
 11. Batch image ingestion for study mode
 
 ---

@@ -61,10 +61,11 @@ Each mode corresponds to a distinct cognitive state. The interface responds diff
 **Tempo:** Slower than thinking mode. You're studying.
 **Design:** Source attribution first — select or create a book/paper source before photographing. Batch capture — photograph page after page, review later. The centerpiece: a "what's your takeaway?" field. The generation effect — producing your own version of the idea — is where learning happens. Connections surface only after you've written your takeaway, not before. The system stores both the source text and your interpretation as distinct artifacts.
 
-### Conversation — LLM Chat Imports
+### Conversation — LLM Chat Imports (On Hold)
 **Cognitive state:** You're preserving a collaborative thinking artifact — your questions and an AI's responses forming a line of reasoning together.
 **Tempo:** Moderate. Review and annotate.
 **Design:** Paste a claude.ai/share or chatgpt.com/share URL → system fetches and renders the conversation as a scrollable transcript. Platform auto-detected (Claude purple, ChatGPT blue). Click any message to highlight it — highlighted exchanges get higher embedding weight. "What did this conversation clarify?" reflection field. Chunked by exchange pairs (human Q + AI response as natural semantic units).
+**Status:** On hold. Share pages are behind Cloudflare Turnstile challenges that block automated fetching. Nice-to-have feature — the core RAG showcase works without it. Implementation work is on the `feature/conversation-import` branch.
 
 ## Four Retrieval Modes
 

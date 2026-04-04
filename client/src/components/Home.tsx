@@ -2,12 +2,9 @@ import { Link } from '@tanstack/react-router'
 import styles from './Home.module.css'
 
 const captureCards = [
-  { to: '/capture/browsing', icon: '🌐', name: 'browsing', desc: 'Paste tweets, links, thoughts' },
-  { to: '/capture/thinking', icon: '📷', name: 'thinking', desc: 'Photograph handwritten notes' },
   { to: '/capture/curation', icon: '📑', name: 'curation', desc: 'Save and annotate articles' },
-  { to: '/capture/dialogue', icon: '✍', name: 'dialogue', desc: 'Reflective writing sessions' },
   { to: '/capture/study', icon: '📚', name: 'study', desc: 'Capture book pages and takeaways' },
-  { to: '/capture/conversation', icon: '💬', name: 'conversation', desc: 'Import LLM conversations' },
+  { to: '/capture/dialogue', icon: '✍', name: 'dialogue', desc: 'Reflective writing sessions' },
 ] as const
 
 const retrieveCards = [
