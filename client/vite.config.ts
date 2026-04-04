@@ -21,4 +21,12 @@ export default defineConfig({
       localsConvention: 'camelCase',
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })
