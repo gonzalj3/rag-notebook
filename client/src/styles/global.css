@@ -161,3 +161,11 @@ body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.4); }
 }
+
+/* View Transitions API — disable default crossfade so
+   the iris wipe clip-path animation is the only effect */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

@@ -1,58 +1,103 @@
+import { useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useIrisNavigate } from '@/lib/portalTransition'
 import styles from './Home.module.css'
 
-const captureCards = [
-  { to: '/capture/curation', icon: '📑', name: 'curation', desc: 'Save and annotate articles' },
-  { to: '/capture/study', icon: '📚', name: 'study', desc: 'Capture book pages and takeaways' },
-  { to: '/capture/dialogue', icon: '✍', name: 'dialogue', desc: 'Reflective writing sessions' },
+const captureTabs = [
+  { to: '/capture/curation', name: 'curation', desc: 'Save and annotate articles', color: '#e8a598' },
+  { to: '/capture/study', name: 'study', desc: 'Capture book pages and takeaways', color: '#e8c878' },
+  { to: '/capture/dialogue', name: 'dialogue', desc: 'Reflective writing sessions', color: '#a8c898' },
 ] as const
 
 const retrieveCards = [
-  { to: '/retrieve/search', icon: '🔍', name: 'search', desc: 'Find anything in your corpus' },
-  { to: '/retrieve/chat', icon: '🗣', name: 'chat', desc: 'Ask questions, get sourced answers' },
-  { to: '/retrieve/projects', icon: '📁', name: 'projects', desc: 'Organize into collections' },
-  { to: '/retrieve/compose', icon: '🖊', name: 'compose', desc: 'Write with your corpus' },
+  { to: '/retrieve/search', name: 'search', desc: 'Find anything in your corpus' },
+  { to: '/retrieve/chat', name: 'chat', desc: 'Ask questions, get sourced answers' },
+  { to: '/retrieve/projects', name: 'projects', desc: 'Organize into collections' },
+  { to: '/retrieve/compose', name: 'compose', desc: 'Write with your corpus' },
 ] as const
 
+const RING_COUNT = 18
+
 export function Home() {
+  const irisNavigate = useIrisNavigate()
+
+  const openPortal = useCallback((e: React.MouseEvent, to: string) => {
+    e.preventDefault()
+    irisNavigate(to, e.clientX, e.clientY)
+  }, [irisNavigate])
+
   return (
     <div className={styles.page}>
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>RAG Notebook</h1>
-          <p className={styles.subtitle}>your personal knowledge system</p>
-          <span className={styles.corpus}>247 items in corpus</span>
-        </header>
+      <div className={styles.notebook}>
+        {/* Spiral binding */}
+        <div className={styles.binding}>
+          {Array.from({ length: RING_COUNT }, (_, i) => (
+            <div key={i} className={styles.ring} />
+          ))}
+        </div>
 
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>capture</h2>
-          <div className={styles.grid}>
-            {captureCards.map((card) => (
-              <Link key={card.to} to={card.to} className={styles.card}>
-                <span className={styles.cardIcon}>{card.icon}</span>
-                <div className={styles.cardInfo}>
-                  <span className={styles.cardName}>{card.name}</span>
-                  <span className={styles.cardDesc}>{card.desc}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Leather header */}
+        <div className={styles.leather}>
+          <span className={styles.leatherTitle}>RAG Notebook</span>
+          <span className={styles.leatherSub}>personal knowledge system</span>
+        </div>
 
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>retrieve</h2>
-          <div className={styles.grid}>
-            {retrieveCards.map((card) => (
-              <Link key={card.to} to={card.to} className={styles.card}>
-                <span className={styles.cardIcon}>{card.icon}</span>
-                <div className={styles.cardInfo}>
-                  <span className={styles.cardName}>{card.name}</span>
-                  <span className={styles.cardDesc}>{card.desc}</span>
-                </div>
-              </Link>
-            ))}
+        {/* Tab dividers along left */}
+        <div className={styles.tabs}>
+          {captureTabs.map((tab) => (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className={styles.tab}
+              style={{ '--tab-color': tab.color } as React.CSSProperties}
+              onClick={(e) => openPortal(e, tab.to)}
+            >
+              <span className={styles.tabLabel}>{tab.name}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Paper body */}
+        <div className={styles.paper}>
+          <div className={styles.paperGrain} />
+
+          <div className={styles.contents}>
+            <h2 className={styles.tocTitle}>Table of Contents</h2>
+
+            <div className={styles.sectionHeader}>capture</div>
+            <div className={styles.gridCards}>
+              {captureTabs.map((card) => (
+                <Link
+                  key={card.to}
+                  to={card.to}
+                  className={styles.gridCard}
+                  onClick={(e) => openPortal(e, card.to)}
+                >
+                  <div className={styles.gridCardTitle}>{card.name}</div>
+                  <div className={styles.gridCardDesc}>{card.desc}</div>
+                </Link>
+              ))}
+            </div>
+
+            <div className={styles.sectionHeader}>retrieve</div>
+            <div className={styles.gridCards}>
+              {retrieveCards.map((card) => (
+                <Link
+                  key={card.to}
+                  to={card.to}
+                  className={styles.gridCard}
+                  onClick={(e) => openPortal(e, card.to)}
+                >
+                  <div className={styles.gridCardTitle}>{card.name}</div>
+                  <div className={styles.gridCardDesc}>{card.desc}</div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* Page stack shadow */}
+        <div className={styles.pageStack} />
       </div>
     </div>
   )
