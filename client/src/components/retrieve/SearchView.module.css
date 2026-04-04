@@ -330,6 +330,24 @@
   border-color: var(--mode-color);
 }
 
+/* Expanded full content */
+.expandedContent {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Empty state */
 .emptyState {
   text-align: center;

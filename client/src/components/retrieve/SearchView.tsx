@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
 import { PageContainer } from '@/components/ui/PageContainer'
 import { ModeHeader } from '@/components/ui/ModeHeader'
-import { mockSearchResults } from '@/lib/mockData'
-import type { SourceType } from '@/lib/types'
+import { query as searchQuery } from '@/lib/api'
+import type { QueryResult, SourceType } from '@/lib/types'
 import styles from './SearchView.module.css'
 
 type FilterKey = 'all' | SourceType
@@ -62,39 +62,34 @@ export function SearchView() {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  const filteredResults = useMemo(() => {
-    let items = mockSearchResults
+  const [results, setResults] = useState<QueryResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-    // Filter by type
-    if (activeFilter !== 'all') {
-      items = items.filter((r) => r.document.type === activeFilter)
+  // Debounced search against server
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([])
+      return
     }
 
-    // Filter by query
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
-      items = items.filter((r) => {
-        const text = [
-          r.document.title,
-          r.document.excerpt,
-          r.document.tags.join(' '),
-          r.document.source ?? '',
-        ]
-          .join(' ')
-          .toLowerCase()
-        return text.includes(q)
-      })
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const types = activeFilter !== 'all' ? [activeFilter] : undefined
+        const data = await searchQuery(query.trim(), { types, limit: 20 })
+        setResults(data)
+      } catch {
+        setResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
 
-      // Sort: title matches first, then by score
-      items = [...items].sort((a, b) => {
-        const aTitle = a.document.title.toLowerCase().includes(q) ? 1 : 0
-        const bTitle = b.document.title.toLowerCase().includes(q) ? 1 : 0
-        return bTitle - aTitle || b.score - a.score
-      })
-    }
-
-    return items
+    return () => clearTimeout(timer)
   }, [query, activeFilter])
+
+  const filteredResults = results
 
   const handleFilterClick = useCallback((key: FilterKey) => {
     setActiveFilter(key)
@@ -141,9 +136,11 @@ export function SearchView() {
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>&#x2315;</div>
             <div className={styles.emptyText}>
-              {query.trim()
-                ? `nothing found for \u201c${query}\u201d`
-                : 'no items in this category yet'}
+              {searching
+                ? 'searching\u2026'
+                : query.trim()
+                  ? `nothing found for \u201c${query}\u201d`
+                  : 'type to search your knowledge'}
             </div>
           </div>
         ) : (
@@ -151,14 +148,15 @@ export function SearchView() {
             const doc = result.document
             const typeLabel = doc.type.replace('_', ' ')
             const typeClass = typeClassMap[doc.type] ?? ''
-            const excerpt = highlightExcerpt(doc.excerpt, query.trim())
+            const rawExcerpt = result.highlights.length > 0 ? result.highlights[0] : doc.excerpt
+            const excerpt = highlightExcerpt(rawExcerpt, query.trim())
 
             return (
               <div key={doc.id} className={styles.resultItem}>
                 <div className={styles.resultTop}>
                   <span className={`${styles.resultType} ${typeClass}`}>{typeLabel}</span>
                   <span className={styles.resultTitle}>{doc.title}</span>
-                  <span className={styles.resultScore}>{result.score}%</span>
+                  <span className={styles.resultScore}>{(result.score * 100).toFixed(0)}%</span>
                 </div>
                 <div
                   className={styles.resultExcerpt}
@@ -191,10 +189,18 @@ export function SearchView() {
                   <button className={styles.actionBtn} type="button">
                     <span className={styles.actionBtnIcon}>&#x1F517;</span> copy link
                   </button>
-                  <button className={styles.actionBtn} type="button">
-                    <span className={styles.actionBtnIcon}>&#x1F4C4;</span> view full
+                  <button
+                    className={styles.actionBtn}
+                    type="button"
+                    onClick={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
+                  >
+                    <span className={styles.actionBtnIcon}>&#x1F4C4;</span>
+                    {expandedId === doc.id ? 'collapse' : 'view full'}
                   </button>
                 </div>
+                {expandedId === doc.id && (
+                  <div className={styles.expandedContent}>{doc.content}</div>
+                )}
               </div>
             )
           })
