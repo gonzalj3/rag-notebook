@@ -50,7 +50,7 @@ async def _vector_search(
 
     sql = text(f"""
         SELECT c.document_id, c.id, c.content, c.chunk_index, c.token_count,
-               c.embedding <=> :embedding::vector AS distance
+               c.embedding <=> CAST(:embedding AS vector) AS distance
         FROM chunks c
         JOIN documents d ON c.document_id = d.id
         {where}

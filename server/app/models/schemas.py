@@ -17,6 +17,7 @@ class IngestTextRequest(BaseModel):
     content: str
     source_type: str = "note"
     tags: list[str] = []
+    source_url: str | None = None
     user_note: str | None = None
     reflection: str | None = None
 

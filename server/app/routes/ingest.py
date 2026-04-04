@@ -95,7 +95,7 @@ async def _ingest_document(
         )
 
     await db.commit()
-    await db.refresh(doc)
+    await db.refresh(doc, attribute_names=["tags"])
 
     return doc, len(chunks), total_tokens
 
@@ -127,6 +127,7 @@ async def ingest_text(req: IngestTextRequest, db: AsyncSession = Depends(get_db)
         content=req.content,
         source_type=req.source_type,
         tag_names=req.tags,
+        source_url=req.source_url,
         user_note=req.user_note,
         reflection=req.reflection,
     )
