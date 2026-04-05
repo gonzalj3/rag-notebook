@@ -8,6 +8,7 @@ const captureRoutes = [
 ] as const
 
 const retrieveRoutes = [
+  { to: '/retrieve/queue', label: 'reading queue' },
   { to: '/retrieve/search', label: 'search' },
   { to: '/retrieve/chat', label: 'chat' },
   { to: '/retrieve/projects', label: 'projects' },

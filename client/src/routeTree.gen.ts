@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RetrieveSearchRouteImport } from './routes/retrieve/search'
+import { Route as RetrieveQueueRouteImport } from './routes/retrieve/queue'
 import { Route as RetrieveProjectsRouteImport } from './routes/retrieve/projects'
 import { Route as RetrieveComposeRouteImport } from './routes/retrieve/compose'
 import { Route as RetrieveChatRouteImport } from './routes/retrieve/chat'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const RetrieveSearchRoute = RetrieveSearchRouteImport.update({
   id: '/retrieve/search',
   path: '/retrieve/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RetrieveQueueRoute = RetrieveQueueRouteImport.update({
+  id: '/retrieve/queue',
+  path: '/retrieve/queue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RetrieveProjectsRoute = RetrieveProjectsRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/retrieve/chat': typeof RetrieveChatRoute
   '/retrieve/compose': typeof RetrieveComposeRoute
   '/retrieve/projects': typeof RetrieveProjectsRoute
+  '/retrieve/queue': typeof RetrieveQueueRoute
   '/retrieve/search': typeof RetrieveSearchRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/retrieve/chat': typeof RetrieveChatRoute
   '/retrieve/compose': typeof RetrieveComposeRoute
   '/retrieve/projects': typeof RetrieveProjectsRoute
+  '/retrieve/queue': typeof RetrieveQueueRoute
   '/retrieve/search': typeof RetrieveSearchRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/retrieve/chat': typeof RetrieveChatRoute
   '/retrieve/compose': typeof RetrieveComposeRoute
   '/retrieve/projects': typeof RetrieveProjectsRoute
+  '/retrieve/queue': typeof RetrieveQueueRoute
   '/retrieve/search': typeof RetrieveSearchRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/retrieve/chat'
     | '/retrieve/compose'
     | '/retrieve/projects'
+    | '/retrieve/queue'
     | '/retrieve/search'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/retrieve/chat'
     | '/retrieve/compose'
     | '/retrieve/projects'
+    | '/retrieve/queue'
     | '/retrieve/search'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/retrieve/chat'
     | '/retrieve/compose'
     | '/retrieve/projects'
+    | '/retrieve/queue'
     | '/retrieve/search'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   RetrieveChatRoute: typeof RetrieveChatRoute
   RetrieveComposeRoute: typeof RetrieveComposeRoute
   RetrieveProjectsRoute: typeof RetrieveProjectsRoute
+  RetrieveQueueRoute: typeof RetrieveQueueRoute
   RetrieveSearchRoute: typeof RetrieveSearchRoute
 }
 
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/retrieve/search'
       fullPath: '/retrieve/search'
       preLoaderRoute: typeof RetrieveSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/retrieve/queue': {
+      id: '/retrieve/queue'
+      path: '/retrieve/queue'
+      fullPath: '/retrieve/queue'
+      preLoaderRoute: typeof RetrieveQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/retrieve/projects': {
@@ -266,6 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   RetrieveChatRoute: RetrieveChatRoute,
   RetrieveComposeRoute: RetrieveComposeRoute,
   RetrieveProjectsRoute: RetrieveProjectsRoute,
+  RetrieveQueueRoute: RetrieveQueueRoute,
   RetrieveSearchRoute: RetrieveSearchRoute,
 }
 export const routeTree = rootRouteImport

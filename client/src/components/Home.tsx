@@ -10,6 +10,7 @@ const captureCards = [
 ] as const
 
 const retrieveCards = [
+  { to: '/retrieve/queue', name: 'reading queue', desc: 'Your saved articles and blog posts' },
   { to: '/retrieve/search', name: 'search', desc: 'Find anything in your corpus' },
   { to: '/retrieve/chat', name: 'chat', desc: 'Ask questions, get sourced answers' },
   { to: '/retrieve/projects', name: 'projects', desc: 'Organize into collections' },
