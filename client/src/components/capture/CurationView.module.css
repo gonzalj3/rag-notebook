@@ -1,3 +1,15 @@
+.error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #c44a4a;
+  background: rgba(196, 74, 74, 0.08);
+  border: 1px solid rgba(196, 74, 74, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* URL Input */
 .urlInputWrap {
   position: relative;

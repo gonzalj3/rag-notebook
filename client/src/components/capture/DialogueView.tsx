@@ -5,8 +5,7 @@ import { useAutoTags } from '@/hooks/useAutoTags'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useSessionTimer } from '@/hooks/useSessionTimer'
 import { useAutoResize } from '@/hooks/useAutoResize'
-// Resonance data sourced from local corpus items matching mockData patterns
-// import { mockSearchResults } from '@/lib/mockData'
+import { getResonances, ingestText } from '@/lib/api'
 import styles from './DialogueView.module.css'
 
 /* ============================================
@@ -30,64 +29,6 @@ interface ResonanceItem {
   tags: string
 }
 
-/* ============================================
-   Mock corpus for resonance matching
-   ============================================ */
-
-const corpusItems = [
-  {
-    triggers: ['chunk', 'split', 'recursive', '512', 'semantic', 'fragment'],
-    type: 'handwritten note',
-    age: '5 days ago',
-    tags: 'rag',
-    text: "Recursive splitting at 512 tokens \u2014 the simplest approach wins. Not because it's theoretically optimal but because semantic chunking creates too many tiny fragments.",
-  },
-  {
-    triggers: ['eval', 'metric', 'measure', 'error', 'iterate', 'improve', 'quality'],
-    type: 'article',
-    source: 'hamel.dev',
-    age: '1 week ago',
-    tags: 'evals',
-    text: 'Teams that succeed barely talk about tools. They obsess over measurement and iteration. Error analysis is the single most valuable activity in AI development.',
-  },
-  {
-    triggers: ['rag', 'fail', 'ingest', 'chunk', 'prompt', 'retrieval', 'pipeline'],
-    type: 'tweet capture',
-    age: '3 days ago',
-    tags: 'rag, infra',
-    text: '80% of RAG failures trace back to the ingestion and chunking layer, not the LLM. Most teams discover this after spending weeks tuning prompts.',
-  },
-  {
-    triggers: ['hamel', 'build', 'measure', 'eval', 'team', 'product', 'process'],
-    type: 'your note',
-    age: '4 days ago',
-    tags: 'evals, learning',
-    text: "Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see.",
-  },
-  {
-    triggers: ['embed', 'model', 'index', 'corpus', 'vector', 'migration', 'upgrade'],
-    type: 'article',
-    source: 'blog.premai.io',
-    age: '1 week ago',
-    tags: 'rag',
-    text: 'Your query must use the same embedding model as your indexed chunks. If you upgrade your embedding model, you must re-embed your entire corpus.',
-  },
-  {
-    triggers: ['ragas', 'faithfulness', 'relevancy', 'context', 'ground truth', 'reference'],
-    type: 'article',
-    source: 'arxiv.org',
-    age: '2 weeks ago',
-    tags: 'evals',
-    text: 'RAGAS provides reference-free evaluation \u2014 measuring faithfulness, answer relevancy, and context relevancy without ground truth annotations.',
-  },
-  {
-    triggers: ['bm25', 'vector', 'hybrid', 'keyword', 'semantic', 'search', 'complement'],
-    type: 'your note',
-    age: '2 days ago',
-    tags: 'rag',
-    text: "The fundamental insight is that BM25 and vector search fail in complementary ways. Exact terms need keyword match. Conceptual queries need semantic search. My notebook needs both.",
-  },
-]
 
 /* ============================================
    Initial past sessions (from prototype)
@@ -140,21 +81,6 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter((w) => w.length > 0).length
 }
 
-function scoreCorpus(text: string): ResonanceItem[] {
-  const lower = text.toLowerCase()
-  const scored = corpusItems
-    .map((item, i) => {
-      let score = 0
-      item.triggers.forEach((t) => {
-        if (lower.includes(t)) score++
-      })
-      return { ...item, score, id: `res-${i}` }
-    })
-    .filter((item) => item.score > 0)
-
-  scored.sort((a, b) => b.score - a.score)
-  return scored.slice(0, 2)
-}
 
 /* ============================================
    Component
@@ -210,6 +136,9 @@ export function DialogueView() {
     if (!text.trim() || closing) return
 
     setClosing(true)
+
+    // Save the session to the server
+    ingestText(text.trim(), tags, { source_type: 'dialogue' }).catch(() => {})
 
     const sessionWords = countWords(text)
     const elapsedMs = Date.now() - sessionStartRef.current
@@ -287,22 +216,32 @@ export function DialogueView() {
         }, 2000)
       }
 
-      // Resonance after threshold words with 1.5s pause
+      // Resonance after threshold words with 1.5s pause — query real corpus
       if (wordCount >= wordThreshold.current) {
         clearTimeout(resonanceTimer.current)
         resonanceTimer.current = setTimeout(() => {
           const current = newText.trim()
           if (current !== lastResonanceText.current && current.length > 50) {
             lastResonanceText.current = current
-            const newResonances = scoreCorpus(current)
 
-            if (newResonances.length > 0) {
-              setResonances((prev) => {
-                const existingTexts = new Set(prev.map((r) => r.text))
-                const toAdd = newResonances.filter((r) => !existingTexts.has(r.text))
-                return toAdd.length > 0 ? [...prev, ...toAdd] : prev
-              })
-            }
+            getResonances(current).then((results) => {
+              if (results.length > 0) {
+                const newResonances: ResonanceItem[] = results.map((r, i) => ({
+                  id: `res-${Date.now()}-${i}`,
+                  type: r.document.type,
+                  source: r.document.source,
+                  age: r.document.createdAt,
+                  text: r.highlights[0] || r.document.excerpt,
+                  tags: r.document.tags.join(', '),
+                }))
+
+                setResonances((prev) => {
+                  const existingTexts = new Set(prev.map((r) => r.text))
+                  const toAdd = newResonances.filter((r) => !existingTexts.has(r.text))
+                  return toAdd.length > 0 ? [...prev, ...toAdd] : prev
+                })
+              }
+            }).catch(() => {})
 
             wordThreshold.current = wordCount + 30
           }

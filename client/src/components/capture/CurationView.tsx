@@ -4,7 +4,7 @@ import { ModeHeader } from '@/components/ui/ModeHeader'
 import { TagRow } from '@/components/ui/TagRow'
 import { CaptureButton } from '@/components/ui/CaptureButton'
 import { FetchIndicator } from '@/components/ui/FetchIndicator'
-import { fetchUrlPreview } from '@/lib/api'
+import { fetchUrlPreview, ingestUrl, getDocuments } from '@/lib/api'
 import { useAutoTags } from '@/hooks/useAutoTags'
 import { useCaptureStore } from '@/stores/capture'
 import styles from './CurationView.module.css'
@@ -37,43 +37,6 @@ const FETCH_STAGE_TEXT: Record<FetchStage, string> = {
   estimating: 'estimating read time...',
 }
 
-const INITIAL_QUEUE: QueueItem[] = [
-  {
-    id: 'q1',
-    title: 'How should I approach evaluating my RAG system?',
-    domain: 'hamel.dev',
-    readTime: '5 min',
-    tags: ['evals', 'rag'],
-    intent: 'for understanding retrieval vs generation eval separation',
-    isRead: false,
-  },
-  {
-    id: 'q2',
-    title: 'Hybrid Search for RAG: BM25, SPLADE, and Vector Search Combined',
-    domain: 'blog.premai.io',
-    readTime: '12 min',
-    tags: ['rag', 'infra'],
-    intent: 'reference for implementing hybrid retrieval in the notebook',
-    isRead: true,
-  },
-  {
-    id: 'q3',
-    title: 'Best Chunking Strategies for RAG in 2026',
-    domain: 'firecrawl.dev',
-    readTime: '9 min',
-    tags: ['rag'],
-    intent: 'need the benchmark numbers for my blog post on chunking',
-    isRead: false,
-  },
-  {
-    id: 'q4',
-    title: 'Chunking Strategies to Improve LLM RAG Pipeline Performance',
-    domain: 'weaviate.io',
-    readTime: '10 min',
-    tags: ['rag', 'infra'],
-    isRead: false,
-  },
-]
 
 export function CurationView() {
   const [url, setUrl] = useState('')
@@ -82,12 +45,30 @@ export function CurationView() {
   const [intent, setIntent] = useState('')
   const [isRead, setIsRead] = useState(false)
   const [tags, setTags] = useState<string[]>([])
-  const [queue, setQueue] = useState<QueueItem[]>(INITIAL_QUEUE)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const intentRef = useRef<HTMLTextAreaElement>(null)
   const { classify } = useAutoTags()
   const addCapture = useCaptureStore((s) => s.addCapture)
+
+  // Load existing articles from server on mount
+  useEffect(() => {
+    getDocuments('url', 20).then((docs) => {
+      setQueue(docs.map((d) => {
+        const domain = d.source ? (() => { try { return new URL(d.source).hostname } catch { return d.source } })() : ''
+        return {
+          id: d.id,
+          title: d.title || d.excerpt,
+          domain: domain ?? '',
+          readTime: '',
+          tags: d.tags,
+          isRead: false,
+        }
+      }))
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -141,28 +122,35 @@ export function CurationView() {
   const handleCapture = useCallback(async () => {
     if (!preview) return
 
+    setError(null)
     addCapture({ title: preview.title, mode: 'curation', status: 'processing' })
 
-    const newItem: QueueItem = {
-      id: `q-${Date.now()}`,
-      title: preview.title,
-      domain: preview.domain,
-      readTime: preview.readTime.replace(' read', ''),
-      tags: [...tags],
-      intent: intent.trim() || undefined,
-      isRead,
+    try {
+      const doc = await ingestUrl(url.trim(), tags, intent.trim() || undefined)
+
+      const newItem: QueueItem = {
+        id: doc.id,
+        title: doc.title || preview.title,
+        domain: preview.domain,
+        readTime: preview.readTime.replace(' read', ''),
+        tags: doc.tags,
+        intent: intent.trim() || undefined,
+        isRead,
+      }
+
+      setQueue((prev) => [newItem, ...prev])
+
+      // Reset form
+      setUrl('')
+      setPreview(null)
+      setIntent('')
+      setIsRead(false)
+      setTags([])
+      inputRef.current?.focus()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save article')
     }
-
-    setQueue((prev) => [newItem, ...prev])
-
-    // Reset form
-    setUrl('')
-    setPreview(null)
-    setIntent('')
-    setIsRead(false)
-    setTags([])
-    inputRef.current?.focus()
-  }, [preview, intent, isRead, tags, addCapture])
+  }, [preview, url, intent, isRead, tags, addCapture])
 
   const handleDismissTag = useCallback((tag: string) => {
     setTags((prev) => prev.filter((t) => t !== tag))
@@ -219,6 +207,12 @@ export function CurationView() {
       {fetchStage !== 'idle' && (
         <div className={styles.fetchWrap}>
           <FetchIndicator active text={FETCH_STAGE_TEXT[fetchStage]} />
+        </div>
+      )}
+
+      {error && (
+        <div className={styles.error} onClick={() => setError(null)}>
+          {error}
         </div>
       )}
 

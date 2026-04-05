@@ -87,6 +87,15 @@ export async function query(text: string, filters?: QueryFilters): Promise<Query
   return data.map(toQueryResult)
 }
 
+export async function getDocuments(sourceType?: string, limit = 50): Promise<Document[]> {
+  const params = new URLSearchParams()
+  if (sourceType) params.set('source_type', sourceType)
+  if (limit !== 50) params.set('limit', String(limit))
+  const qs = params.toString()
+  const data = await fetchJson<ServerDocumentOut[]>(`/api/documents${qs ? `?${qs}` : ''}`)
+  return data.map(toDocument)
+}
+
 export async function getDocument(id: string): Promise<Document | undefined> {
   const data = await fetchJson<ServerDocumentOut>(`/api/documents/${id}`)
   return toDocument(data)

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { PageContainer } from '@/components/ui/PageContainer'
 import { ModeHeader } from '@/components/ui/ModeHeader'
-import { mockProjects } from '@/lib/mockData'
+import { getProjects, getProject, getProjectSuggestions, addToProject, updateProject, createProject } from '@/lib/api'
 import type { Project, Document, SourceType } from '@/lib/types'
 import { Route } from '@/routes/retrieve/projects'
 import styles from './ProjectsView.module.css'
@@ -62,12 +62,6 @@ function groupItems(items: Document[]): { label: string; items: Document[] }[] {
   return groups
 }
 
-/** Suggested items from corpus (items not already in the project) */
-const suggestedItems = [
-  { id: 'sug-1', title: 'Weaviate: Chunking Strategies to Improve RAG Performance' },
-  { id: 'sug-2', title: 'Building Production RAG: Architecture, Chunking, Evaluation' },
-  { id: 'sug-3', title: 'Handwritten note: eval pipeline design' },
-]
 
 // ─── Project Card ───────────────────────────────────────────
 
@@ -127,16 +121,30 @@ function ProjectDetail({ project, onBack }: ProjectDetailProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [notes, setNotes] = useState(project.notes)
   const [addedSuggestions, setAddedSuggestions] = useState<Set<string>>(new Set())
+  const [suggestions, setSuggestions] = useState<Document[]>([])
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  // Fetch suggestions from server
+  useEffect(() => {
+    getProjectSuggestions(project.id).then(setSuggestions).catch(() => {})
+  }, [project.id])
 
   const groups = useMemo(() => groupItems(project.items), [project.items])
 
   // Auto-resize textarea
   const handleNotesInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.target.value)
+    const value = e.target.value
+    setNotes(value)
     const el = e.target
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
-  }, [])
+
+    // Debounced save to server
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      updateProject(project.id, { notes: value }).catch(() => {})
+    }, 1000)
+  }, [project.id])
 
   // Initial auto-resize
   useEffect(() => {
@@ -146,9 +154,10 @@ function ProjectDetail({ project, onBack }: ProjectDetailProps) {
     }
   }, [])
 
-  const handleAddSuggestion = useCallback((id: string) => {
-    setAddedSuggestions((prev) => new Set(prev).add(id))
-  }, [])
+  const handleAddSuggestion = useCallback((docId: string) => {
+    setAddedSuggestions((prev) => new Set(prev).add(docId))
+    addToProject(project.id, docId).catch(() => {})
+  }, [project.id])
 
   return (
     <>
@@ -207,21 +216,23 @@ function ProjectDetail({ project, onBack }: ProjectDetailProps) {
       </div>
 
       {/* Suggested from corpus */}
-      <div className={styles.suggested}>
-        <div className={styles.suggestedLabel}>suggested from your corpus</div>
-        {suggestedItems.map((item) => (
-          <div key={item.id} className={styles.suggestedItem}>
-            <span className={styles.suggestedTitle}>{item.title}</span>
-            <button
-              className={`${styles.suggestedAdd} ${addedSuggestions.has(item.id) ? styles.suggestedAddDone : ''}`}
-              onClick={() => handleAddSuggestion(item.id)}
-              type="button"
-            >
-              {addedSuggestions.has(item.id) ? 'added' : '+ add'}
-            </button>
-          </div>
-        ))}
-      </div>
+      {suggestions.length > 0 && (
+        <div className={styles.suggested}>
+          <div className={styles.suggestedLabel}>suggested from your corpus</div>
+          {suggestions.map((doc) => (
+            <div key={doc.id} className={styles.suggestedItem}>
+              <span className={styles.suggestedTitle}>{doc.title || doc.excerpt}</span>
+              <button
+                className={`${styles.suggestedAdd} ${addedSuggestions.has(doc.id) ? styles.suggestedAddDone : ''}`}
+                onClick={() => handleAddSuggestion(doc.id)}
+                type="button"
+              >
+                {addedSuggestions.has(doc.id) ? 'added' : '+ add'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className={styles.detailActions}>
@@ -256,19 +267,29 @@ export function ProjectsView() {
   const { projectId } = Route.useSearch()
   const navigate = useNavigate()
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    projectId ?? null,
-  )
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Sync URL param to state
+  // Fetch project list
   useEffect(() => {
-    setSelectedProjectId(projectId ?? null)
-  }, [projectId])
+    setLoading(true)
+    getProjects()
+      .then(setProjects)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
 
-  const selectedProject = useMemo(
-    () => mockProjects.find((p) => p.id === selectedProjectId) ?? null,
-    [selectedProjectId],
-  )
+  // Fetch detail when projectId changes
+  useEffect(() => {
+    if (!projectId) {
+      setSelectedProject(null)
+      return
+    }
+    getProject(projectId)
+      .then((p) => setSelectedProject(p ?? null))
+      .catch(() => setSelectedProject(null))
+  }, [projectId])
 
   const handleSelectProject = useCallback(
     (id: string) => {
@@ -289,19 +310,39 @@ export function ProjectsView() {
     })
   }, [navigate])
 
+  const handleNewProject = useCallback(async () => {
+    const name = prompt('Project name:')
+    if (!name?.trim()) return
+    try {
+      const project = await createProject(name.trim(), '')
+      setProjects((prev) => [project, ...prev])
+      handleSelectProject(project.id)
+    } catch { /* ignore */ }
+  }, [handleSelectProject])
+
   return (
     <PageContainer mode="projects" maxWidth={700}>
       <ModeHeader category="retrieve" mode="projects">
-        <button className={styles.newProjectBtn} type="button">
+        <button className={styles.newProjectBtn} type="button" onClick={handleNewProject}>
           + new project
         </button>
       </ModeHeader>
 
       {selectedProject ? (
         <ProjectDetail project={selectedProject} onBack={handleBack} />
+      ) : loading ? (
+        <div className={styles.projectGrid}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--text-muted)', padding: '40px 0', textAlign: 'center' }}>
+            loading projects...
+          </div>
+        </div>
+      ) : projects.length === 0 ? (
+        <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--text-muted)', padding: '40px 0', textAlign: 'center' }}>
+          no projects yet — create one to start collecting
+        </div>
       ) : (
         <div className={styles.projectGrid}>
-          {mockProjects.map((project) => (
+          {projects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
