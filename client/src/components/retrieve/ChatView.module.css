@@ -384,6 +384,59 @@
   border-color: var(--mode-color);
 }
 
+/* Model load banner */
+.loadBanner {
+  padding: 16px 20px;
+  margin: 0 20px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.loadText {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.loadBtn {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.loadBtn:hover {
+  background: var(--accent-glow);
+}
+.loadProgress {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.loadBar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.emptyChat {
+  text-align: center;
+  padding: 60px 20px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .layout {

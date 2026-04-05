@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, type KeyboardEvent } from 'react'
 import { PageContainer } from '@/components/ui/PageContainer'
 import { ModeHeader } from '@/components/ui/ModeHeader'
-import { mockQuotes, mockWritingPrompts } from '@/lib/mockData'
-import { getQuotes, getWritingPrompts } from '@/lib/api'
+import { query } from '@/lib/api'
+import { useWebLLM } from '@/hooks/useWebLLM'
 import styles from './ComposeView.module.css'
 
 interface Quote {
@@ -30,6 +30,7 @@ export function ComposeView() {
   const [removingPrompts, setRemovingPrompts] = useState<Set<string>>(new Set())
   const [showPrompts, setShowPrompts] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { generateComplete, isReady: llmReady } = useWebLLM()
 
   const fetchQuotes = useCallback(async () => {
     const trimmed = topic.trim()
@@ -41,28 +42,45 @@ export function ComposeView() {
     setRemovingPrompts(new Set())
 
     try {
-      const [fetchedQuotes, fetchedPrompts] = await Promise.all([
-        getQuotes(trimmed),
-        getWritingPrompts(trimmed),
-      ])
+      // Pull real quotes from corpus via hybrid search
+      const results = await query(trimmed, { limit: 5 })
+      const fetchedQuotes: Quote[] = results.map((r, i) => ({
+        id: `q-${i}-${Date.now()}`,
+        text: r.highlights[0] || r.document.excerpt,
+        sourceType: r.document.type,
+        sourceName: r.document.title || r.document.source || 'untitled',
+        date: r.document.createdAt,
+      }))
       setQuotes(fetchedQuotes)
       setPhase('loaded')
 
-      // Show prompts after a short delay
-      setTimeout(() => {
-        setPrompts(fetchedPrompts)
-        setShowPrompts(true)
-      }, 400)
+      // Generate writing prompts via LLM if available
+      if (llmReady) {
+        setTimeout(async () => {
+          try {
+            const context = fetchedQuotes.map((q) => `"${q.text}" — ${q.sourceName}`).join('\n\n')
+            const response = await generateComplete(
+              'You generate thought-provoking writing prompts. Return exactly 3 prompts, each on its own line prefixed with a number. Each prompt should be a question that helps someone start writing about the topic. Be concise.',
+              `Topic: ${trimmed}\n\nRelevant excerpts from the user's notes:\n${context}\n\nGenerate 3 writing prompts:`,
+            )
+            const lines = response.split('\n').filter((l) => l.trim().length > 5)
+            const fetchedPrompts: WritingPrompt[] = lines.slice(0, 3).map((line, i) => ({
+              id: `wp-${i}-${Date.now()}`,
+              question: line.replace(/^\d+[\.\)]\s*/, ''),
+              context: `Based on ${fetchedQuotes.length} sources from your corpus`,
+            }))
+            setPrompts(fetchedPrompts)
+            setShowPrompts(true)
+          } catch {
+            setShowPrompts(false)
+          }
+        }, 400)
+      }
     } catch {
-      // Fallback to mock data
-      setQuotes(mockQuotes)
+      setQuotes([])
       setPhase('loaded')
-      setTimeout(() => {
-        setPrompts(mockWritingPrompts)
-        setShowPrompts(true)
-      }, 400)
     }
-  }, [topic])
+  }, [topic, llmReady, generateComplete])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -99,18 +117,24 @@ export function ComposeView() {
   }, [])
 
   const regeneratePrompts = useCallback(async () => {
+    if (!llmReady) return
     try {
-      const fetched = await getWritingPrompts(topic.trim())
-      setPrompts(fetched)
-    } catch {
-      setPrompts(mockWritingPrompts)
-    }
-  }, [topic])
+      const context = quotes.map((q) => `"${q.text}" — ${q.sourceName}`).join('\n\n')
+      const response = await generateComplete(
+        'You generate thought-provoking writing prompts. Return exactly 3 prompts, each on its own line prefixed with a number. Each prompt should be a question that helps someone start writing about the topic. Be concise and creative — generate different prompts than before.',
+        `Topic: ${topic.trim()}\n\nRelevant excerpts:\n${context}\n\nGenerate 3 new writing prompts:`,
+      )
+      const lines = response.split('\n').filter((l) => l.trim().length > 5)
+      setPrompts(lines.slice(0, 3).map((line, i) => ({
+        id: `wp-${i}-${Date.now()}`,
+        question: line.replace(/^\d+[\.\)]\s*/, ''),
+        context: `Based on ${quotes.length} sources from your corpus`,
+      })))
+    } catch { /* ignore */ }
+  }, [topic, quotes, llmReady, generateComplete])
 
-  const visibleQuotes = quotes.filter((q) => !removingQuotes.has(q.id) || removingQuotes.has(q.id))
-  const visiblePrompts = prompts.filter(
-    (p) => !removingPrompts.has(p.id) || removingPrompts.has(p.id),
-  )
+  const visibleQuotes = quotes.filter((q) => !removingQuotes.has(q.id))
+  const visiblePrompts = prompts.filter((p) => !removingPrompts.has(p.id))
 
   return (
     <PageContainer mode="compose" maxWidth={640}>

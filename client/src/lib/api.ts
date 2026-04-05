@@ -1,4 +1,4 @@
-import type { Document, QueryResult, Project, QueryFilters, ChatMessage } from './types'
+import type { Document, QueryResult, Project, QueryFilters } from './types'
 import {
   toDocument,
   toQueryResult,
@@ -11,7 +11,6 @@ import {
   type ServerProjectOut,
   type ServerProjectDetail,
 } from './apiAdapters'
-import { mockChatMessages, mockQuotes, mockWritingPrompts } from './mockData'
 
 // --- Typed fetch helper ---
 
@@ -148,27 +147,6 @@ export async function removeFromProject(projectId: string, documentId: string): 
 export async function getProjectSuggestions(projectId: string): Promise<Document[]> {
   const data = await fetchJson<ServerDocumentOut[]>(`/api/projects/${projectId}/suggestions`)
   return data.map(toDocument)
-}
-
-// --- Chat (stays mock — no server LLM) ---
-
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-export async function chat(_message: string, _history: ChatMessage[]): Promise<ChatMessage> {
-  await delay(1500)
-  return mockChatMessages[1]
-}
-
-// --- Compose (stays mock — no server endpoint) ---
-
-export async function getQuotes(_topic: string) {
-  await delay(800)
-  return mockQuotes
-}
-
-export async function getWritingPrompts(_topic: string) {
-  await delay(600)
-  return mockWritingPrompts
 }
 
 // --- URL preview (uses ingest/url response) ---

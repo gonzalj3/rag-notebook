@@ -321,13 +321,3 @@ describe('fetchJson error handling', () => {
   })
 })
 
-describe('chat', () => {
-  it('still returns mock data', async () => {
-    const { chat } = await loadApi()
-    const msg = await chat('hello', [])
-
-    // Should NOT have called fetch — chat is still mocked
-    expect(mockFetch).not.toHaveBeenCalled()
-    expect(msg.role).toBe('ai')
-  })
-})
