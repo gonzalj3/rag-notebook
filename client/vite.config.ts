@@ -21,12 +21,25 @@ export default defineConfig({
       localsConvention: 'camelCase',
     },
   },
+  // Prevent Vite from pre-bundling onnxruntime-web/webgpu —
+  // pre-bundling strips the subpath export and removes webgpuInit
+  optimizeDeps: {
+    exclude: ['@huggingface/transformers', 'onnxruntime-web'],
+  },
   server: {
+    // COOP/COEP enable SharedArrayBuffer for multi-threaded WASM inference
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
+  },
+  worker: {
+    format: 'es',
   },
 })

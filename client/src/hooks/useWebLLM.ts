@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import { CreateMLCEngine, type MLCEngine } from '@mlc-ai/web-llm'
 import { useLlmStore } from '@/stores/llm'
 
@@ -6,30 +6,44 @@ const RAG_SYSTEM_PROMPT = `You are a personal knowledge assistant for a RAG Note
 
 Answer based on the provided context. If the context doesn't contain enough information, say so. Be concise and direct. Cite which source you're drawing from when relevant.`
 
-/** Models that use transformers.js instead of WebLLM */
-const TRANSFORMERS_JS_MODELS: Record<string, string> = {
-  'gemma-4-E2B-it': 'onnx-community/gemma-4-E2B-it-ONNX',
+/** Models that use transformers.js Web Worker instead of WebLLM */
+const WORKER_MODELS = new Set(['gemma-4-E2B-it'])
+
+function isWorkerModel(modelName: string): boolean {
+  return WORKER_MODELS.has(modelName)
 }
 
-function isTransformersModel(modelName: string): boolean {
-  return modelName in TRANSFORMERS_JS_MODELS
+type WorkerMessageResolve = {
+  resolve: (chunks: string[]) => void
+  reject: (err: Error) => void
+  chunks: string[]
 }
 
 /**
- * Hook that manages LLM inference via WebLLM or transformers.js.
- * Automatically picks the right backend based on the selected model.
+ * Hook that manages LLM inference via WebLLM or transformers.js (Web Worker).
+ * Automatically routes based on model selection.
  */
 export function useWebLLM() {
   const engineRef = useRef<MLCEngine | null>(null)
-  const transformersRef = useRef<{ generator: any } | null>(null)
+  const workerRef = useRef<Worker | null>(null)
+  const pendingGenRef = useRef<WorkerMessageResolve | null>(null)
   const store = useLlmStore()
+
+  // Clean up worker on unmount
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate()
+      workerRef.current = null
+    }
+  }, [])
 
   const loadModel = useCallback(async () => {
     if (store.isLoading) return
 
-    // Reset previous engine
+    // Tear down any existing engine/worker
+    workerRef.current?.terminate()
+    workerRef.current = null
     engineRef.current = null
-    transformersRef.current = null
 
     if (!store.webgpuSupported) {
       store.setError('WebGPU is not supported in this browser')
@@ -40,65 +54,63 @@ export function useWebLLM() {
     store.setReady(false)
     store.setError(null)
 
-    try {
-      if (isTransformersModel(store.modelName)) {
-        // --- Transformers.js backend (Gemma 4) ---
-        const { pipeline } = await import('@huggingface/transformers')
-        const modelId = TRANSFORMERS_JS_MODELS[store.modelName]
+    if (isWorkerModel(store.modelName)) {
+      // --- Transformers.js via Web Worker (Gemma 4) ---
+      const worker = new Worker(new URL('../lib/llm.worker.ts', import.meta.url), {
+        type: 'module',
+      })
+      workerRef.current = worker
 
-        store.setProgress(0, `Loading ${store.modelName}...`)
+      return new Promise<void>((resolve) => {
+        worker.addEventListener('message', (e: MessageEvent) => {
+          const { status, data, progress } = e.data
 
-        // Try WebGPU first, fall back to WASM if WebGPU init fails (e.g. Safari)
-        let device: 'webgpu' | 'wasm' = 'webgpu'
-        try {
-          const gpu = navigator.gpu
-          if (!gpu) throw new Error('No WebGPU')
-          const adapter = await gpu.requestAdapter()
-          if (!adapter) throw new Error('No adapter')
-        } catch {
-          device = 'wasm'
-          store.setProgress(0, 'WebGPU unavailable, using WASM (slower)...')
-        }
-
-        const generator = await pipeline('text-generation', modelId, {
-          dtype: device === 'webgpu' ? 'q4f16' : 'q4',
-          device,
-          progress_callback: (progress: any) => {
-            if (progress.status === 'progress' && progress.total) {
-              store.setProgress(progress.loaded / progress.total, `Downloading: ${progress.file}`)
-            } else if (progress.status === 'ready') {
-              store.setProgress(1, 'Model ready')
-            }
-          },
-        }).catch(async (err: Error) => {
-          // If WebGPU pipeline fails, retry with WASM
-          if (device === 'webgpu') {
-            store.setProgress(0, 'WebGPU failed, retrying with WASM...')
-            return pipeline('text-generation', modelId, {
-              dtype: 'q4',
-              device: 'wasm',
-              progress_callback: (progress: any) => {
-                if (progress.status === 'progress' && progress.total) {
-                  store.setProgress(progress.loaded / progress.total, `Downloading: ${progress.file}`)
-                }
-              },
-            })
+          switch (status) {
+            case 'webgpu_ok':
+              store.setProgress(0, 'Loading model...')
+              worker.postMessage({ type: 'load' })
+              break
+            case 'loading':
+              store.setProgress(progress ?? 0, data ?? 'Loading...')
+              break
+            case 'ready':
+              store.setReady(true)
+              store.setLoading(false)
+              resolve()
+              break
+            case 'error':
+              store.setError(data ?? 'Unknown error')
+              store.setLoading(false)
+              resolve()
+              break
+            case 'update':
+              // Streaming token — forward to pending generator
+              if (pendingGenRef.current) {
+                pendingGenRef.current.chunks.push(e.data.output)
+              }
+              break
+            case 'complete':
+              if (pendingGenRef.current) {
+                pendingGenRef.current.resolve(pendingGenRef.current.chunks)
+                pendingGenRef.current = null
+              }
+              break
           }
-          throw err
         })
 
-        transformersRef.current = { generator }
-        store.setReady(true)
-      } else {
-        // --- WebLLM backend (Qwen, Gemma 2) ---
-        const engine = await CreateMLCEngine(store.modelName, {
-          initProgressCallback: (report) => {
-            store.setProgress(report.progress, report.text)
-          },
-        })
-        engineRef.current = engine
-        store.setReady(true)
-      }
+        worker.postMessage({ type: 'check' })
+      })
+    }
+
+    // --- WebLLM backend (Qwen, Gemma 2) ---
+    try {
+      const engine = await CreateMLCEngine(store.modelName, {
+        initProgressCallback: (report) => {
+          store.setProgress(report.progress, report.text)
+        },
+      })
+      engineRef.current = engine
+      store.setReady(true)
     } catch (err) {
       store.setError(err instanceof Error ? err.message : 'Failed to load model')
     } finally {
@@ -138,26 +150,49 @@ export function useWebLLM() {
     }
     messages.push({ role: 'user', content: userMessage })
 
-    if (transformersRef.current) {
-      // --- Transformers.js path ---
-      const { generator } = transformersRef.current
-      const output = await generator(messages, {
-        max_new_tokens: 1024,
-        temperature: 0.7,
-        do_sample: true,
-        return_full_text: false,
-      })
-      // transformers.js returns the full text at once
-      const text = output[0]?.generated_text
-      if (typeof text === 'string') {
-        yield text
-      } else if (Array.isArray(text)) {
-        // Chat format returns array of messages
-        const lastMsg = text[text.length - 1]
-        yield lastMsg?.content ?? ''
+    if (workerRef.current) {
+      // --- Worker path: accumulate streaming tokens, yield as they arrive ---
+      const worker = workerRef.current
+      const chunkQueue: string[] = []
+      let done = false
+      let error: Error | null = null
+      let resolveNext: (() => void) | null = null
+
+      const handler = (e: MessageEvent) => {
+        const { status, data, output } = e.data
+        if (status === 'update') {
+          chunkQueue.push(output)
+          resolveNext?.()
+          resolveNext = null
+        } else if (status === 'complete') {
+          done = true
+          resolveNext?.()
+          resolveNext = null
+        } else if (status === 'error') {
+          error = new Error(data ?? 'Generation error')
+          done = true
+          resolveNext?.()
+          resolveNext = null
+        }
+      }
+      worker.addEventListener('message', handler)
+      worker.postMessage({ type: 'generate', data: messages })
+
+      try {
+        while (!done || chunkQueue.length > 0) {
+          if (chunkQueue.length === 0 && !done) {
+            await new Promise<void>((r) => { resolveNext = r })
+          }
+          while (chunkQueue.length > 0) {
+            yield chunkQueue.shift()!
+          }
+        }
+        if (error) throw error
+      } finally {
+        worker.removeEventListener('message', handler)
       }
     } else if (engineRef.current) {
-      // --- WebLLM path (streaming) ---
+      // --- WebLLM path (native streaming) ---
       const response = await engineRef.current.chat.completions.create({
         messages,
         stream: true,
@@ -183,25 +218,47 @@ export function useWebLLM() {
     systemPrompt: string,
     userMessage: string,
   ): Promise<string> => {
-    if (transformersRef.current) {
-      const { generator } = transformersRef.current
+    if (workerRef.current) {
       const messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ]
-      const output = await generator(messages, {
-        max_new_tokens: 1024,
-        temperature: 0.7,
-        do_sample: true,
-        return_full_text: false,
-      })
-      const text = output[0]?.generated_text
-      if (typeof text === 'string') return text
-      if (Array.isArray(text)) {
-        const lastMsg = text[text.length - 1]
-        return lastMsg?.content ?? ''
+      let fullText = ''
+      for await (const token of (async function* () {
+        const worker = workerRef.current!
+        const chunkQueue: string[] = []
+        let done = false
+        let resolveNext: (() => void) | null = null
+
+        const handler = (e: MessageEvent) => {
+          const { status, output } = e.data
+          if (status === 'update') {
+            chunkQueue.push(output)
+            resolveNext?.()
+            resolveNext = null
+          } else if (status === 'complete' || status === 'error') {
+            done = true
+            resolveNext?.()
+            resolveNext = null
+          }
+        }
+        worker.addEventListener('message', handler)
+        worker.postMessage({ type: 'generate', data: messages })
+
+        try {
+          while (!done || chunkQueue.length > 0) {
+            if (chunkQueue.length === 0 && !done) {
+              await new Promise<void>((r) => { resolveNext = r })
+            }
+            while (chunkQueue.length > 0) yield chunkQueue.shift()!
+          }
+        } finally {
+          worker.removeEventListener('message', handler)
+        }
+      })()) {
+        fullText += token
       }
-      return ''
+      return fullText
     }
 
     if (!engineRef.current) throw new Error('Model not loaded')

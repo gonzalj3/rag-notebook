@@ -173,6 +173,9 @@ function ModelLoadBanner({ onLoad, isLoading, loadProgress, loadStatus, error, w
     )
   }
 
+  const isGemma4 = modelName === 'gemma-4-E2B-it'
+  const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
   return (
     <div className={styles.loadBanner}>
       <div className={styles.loadText}>Select a model and load it to start chatting with your corpus.</div>
@@ -187,6 +190,11 @@ function ModelLoadBanner({ onLoad, isLoading, loadProgress, loadStatus, error, w
           </button>
         ))}
       </div>
+      {isGemma4 && isSafari && (
+        <div className={styles.memoryWarning}>
+          Gemma 4 needs ~2GB RAM. Safari may reload the tab if memory is tight — close other tabs if possible.
+        </div>
+      )}
       <button className={styles.loadBtn} onClick={onLoad}>load {AVAILABLE_MODELS.find((m) => m.id === modelName)?.label ?? 'model'}</button>
     </div>
   )

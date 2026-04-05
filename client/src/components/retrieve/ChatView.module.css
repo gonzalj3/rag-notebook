@@ -529,6 +529,18 @@
   border-radius: 2px;
   transition: width 0.3s ease;
 }
+.memoryWarning {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  color: #b8841c;
+  background: rgba(184, 132, 28, 0.08);
+  border: 1px solid rgba(184, 132, 28, 0.2);
+  border-radius: 4px;
+}
+
 .emptyChat {
   text-align: center;
   padding: 60px 20px;
