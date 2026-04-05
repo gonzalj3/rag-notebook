@@ -63,11 +63,11 @@
   --border-subtle: #252622;
   --border-focus: #4a4b55;
 
-  --text-primary: #d4d4d8;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
-  --text-faint: #3a3a40;
-  --text-ghost: #2a2a30;
+  --text-primary: #ededf0;
+  --text-secondary: #c8c8d0;
+  --text-muted: #8a8a96;
+  --text-faint: #6a6a75;
+  --text-ghost: #4a4a52;
 
   --accent: #a78bfa;
   --accent-dim: rgba(167, 139, 250, 0.08);

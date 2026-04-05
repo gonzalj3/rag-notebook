@@ -25,6 +25,7 @@
     "@fontsource/newsreader": "^5.2.10",
     "@tanstack/react-router": "^1.168.10",
     "@tanstack/router-plugin": "^1.167.12",
+    "page-flip": "^2.0.7",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zustand": "^5.0.12"

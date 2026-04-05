@@ -3,26 +3,36 @@
   align-items: center;
   gap: 24px;
   padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   overflow-x: auto;
   flex-shrink: 0;
+
+  /* Leather header style — matches landing page */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #6b3d1e 0%, #4a2810 45%, #5c3318 75%, #3d2008 100%);
+  border-bottom: none;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 220, 160, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .brand {
   font-family: var(--font-serif);
   font-size: 0.8rem;
   font-weight: 300;
-  color: var(--text-secondary);
+  color: #f0d090;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .brand:hover {
-  color: var(--text-primary);
+  color: #f8e0b0;
 }
 
 .groups {
@@ -39,14 +49,14 @@
 
 .groupLabel {
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: rgba(240, 208, 144, 0.35);
   letter-spacing: 0.1em;
   font-size: 0.5rem;
   margin-right: 2px;
 }
 
 .link {
-  color: var(--text-muted);
+  color: rgba(240, 208, 144, 0.6);
   text-decoration: none;
   padding: 4px 8px;
   border-radius: 6px;
@@ -55,11 +65,49 @@
 }
 
 .link:hover {
-  color: var(--text-secondary);
-  background: var(--surface-hover);
+  color: #f0d090;
+  background: rgba(255, 220, 160, 0.1);
 }
 
 .active {
-  color: var(--accent);
-  background: var(--accent-dim);
+  color: #f0d090;
+  background: rgba(255, 220, 160, 0.15);
+}
+
+/* Dark mode — deep purple leather */
+:global([data-theme="dark"]) .nav {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, #2e1a4a 0%, #1e1035 45%, #261440 75%, #160c2a 100%);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(180, 140, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+:global([data-theme="dark"]) .brand {
+  color: #c4a8f0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+:global([data-theme="dark"]) .brand:hover {
+  color: #d8c0ff;
+}
+
+:global([data-theme="dark"]) .groupLabel {
+  color: rgba(180, 155, 230, 0.3);
+}
+
+:global([data-theme="dark"]) .link {
+  color: rgba(180, 155, 230, 0.55);
+}
+
+:global([data-theme="dark"]) .link:hover {
+  color: #c4a8f0;
+  background: rgba(180, 140, 255, 0.1);
+}
+
+:global([data-theme="dark"]) .active {
+  color: #c4a8f0;
+  background: rgba(180, 140, 255, 0.15);
 }

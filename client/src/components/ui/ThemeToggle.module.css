@@ -1,7 +1,5 @@
 .toggle {
   position: fixed;
-  top: 20px;
-  right: 20px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -22,4 +20,28 @@
 .toggle:hover {
   border-color: var(--border-focus);
   transform: scale(1.05);
+}
+
+/* Landing page — centered vertically in the leather header */
+.home {
+  top: calc(2.5vh + 18px);
+  right: calc(2.5vw + 24px);
+}
+
+/* Nav views — tucked into the top-right, overlapping the nav bar */
+.nav {
+  top: 2px;
+  right: 8px;
+}
+
+:global([data-theme="dark"]) .toggle {
+  background: #2a2a30;
+  border-color: #4a4a55;
+  color: #d4d4d8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+:global([data-theme="dark"]) .toggle:hover {
+  background: #3a3a42;
+  border-color: #6a6a75;
 }

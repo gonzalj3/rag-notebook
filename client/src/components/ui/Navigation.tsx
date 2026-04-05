@@ -2,12 +2,9 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import styles from './Navigation.module.css'
 
 const captureRoutes = [
-  { to: '/capture/browsing', label: 'browsing' },
-  { to: '/capture/thinking', label: 'thinking' },
   { to: '/capture/curation', label: 'curation' },
-  { to: '/capture/dialogue', label: 'dialogue' },
   { to: '/capture/study', label: 'study' },
-  { to: '/capture/conversation', label: 'conversation' },
+  { to: '/capture/dialogue', label: 'dialogue' },
 ] as const
 
 const retrieveRoutes = [

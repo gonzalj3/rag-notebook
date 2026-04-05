@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
-import { useIrisNavigate } from '@/lib/portalTransition'
+import { useTransitionNavigate } from '@/lib/transitions'
 import styles from './Home.module.css'
 
-const captureTabs = [
+const captureCards = [
   { to: '/capture/curation', name: 'curation', desc: 'Save and annotate articles', color: '#e8a598' },
   { to: '/capture/study', name: 'study', desc: 'Capture book pages and takeaways', color: '#e8c878' },
   { to: '/capture/dialogue', name: 'dialogue', desc: 'Reflective writing sessions', color: '#a8c898' },
@@ -16,45 +16,21 @@ const retrieveCards = [
   { to: '/retrieve/compose', name: 'compose', desc: 'Write with your corpus' },
 ] as const
 
-const RING_COUNT = 18
-
 export function Home() {
-  const irisNavigate = useIrisNavigate()
+  const navigate = useTransitionNavigate()
 
-  const openPortal = useCallback((e: React.MouseEvent, to: string) => {
+  const turnPage = useCallback((e: React.MouseEvent, to: string) => {
     e.preventDefault()
-    irisNavigate(to, e.clientX, e.clientY)
-  }, [irisNavigate])
+    navigate(to, 'iris', { x: e.clientX, y: e.clientY })
+  }, [navigate])
 
   return (
     <div className={styles.page}>
       <div className={styles.notebook}>
-        {/* Spiral binding */}
-        <div className={styles.binding}>
-          {Array.from({ length: RING_COUNT }, (_, i) => (
-            <div key={i} className={styles.ring} />
-          ))}
-        </div>
-
         {/* Leather header */}
         <div className={styles.leather}>
           <span className={styles.leatherTitle}>RAG Notebook</span>
           <span className={styles.leatherSub}>personal knowledge system</span>
-        </div>
-
-        {/* Tab dividers along left */}
-        <div className={styles.tabs}>
-          {captureTabs.map((tab) => (
-            <Link
-              key={tab.to}
-              to={tab.to}
-              className={styles.tab}
-              style={{ '--tab-color': tab.color } as React.CSSProperties}
-              onClick={(e) => openPortal(e, tab.to)}
-            >
-              <span className={styles.tabLabel}>{tab.name}</span>
-            </Link>
-          ))}
         </div>
 
         {/* Paper body */}
@@ -66,13 +42,14 @@ export function Home() {
 
             <div className={styles.sectionHeader}>capture</div>
             <div className={styles.gridCards}>
-              {captureTabs.map((card) => (
+              {captureCards.map((card) => (
                 <Link
                   key={card.to}
                   to={card.to}
                   className={styles.gridCard}
-                  onClick={(e) => openPortal(e, card.to)}
+                  onClick={(e) => turnPage(e, card.to)}
                 >
+                  <span className={styles.gridCardTab} style={{ background: card.color }} />
                   <div className={styles.gridCardTitle}>{card.name}</div>
                   <div className={styles.gridCardDesc}>{card.desc}</div>
                 </Link>
@@ -86,7 +63,7 @@ export function Home() {
                   key={card.to}
                   to={card.to}
                   className={styles.gridCard}
-                  onClick={(e) => openPortal(e, card.to)}
+                  onClick={(e) => turnPage(e, card.to)}
                 >
                   <div className={styles.gridCardTitle}>{card.name}</div>
                   <div className={styles.gridCardDesc}>{card.desc}</div>
