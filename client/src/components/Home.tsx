@@ -6,7 +6,7 @@ import styles from './Home.module.css'
 const captureCards = [
   { to: '/capture/curation', name: 'curation', desc: 'Save and annotate articles', color: '#e8a598' },
   { to: '/capture/study', name: 'study', desc: 'Capture book pages and takeaways', color: '#e8c878' },
-  { to: '/capture/dialogue', name: 'dialogue', desc: 'Reflective writing sessions', color: '#a8c898' },
+  { to: '/capture/dialogue', name: 'notes', desc: 'Reflective writing sessions', color: '#a8c898' },
 ] as const
 
 const retrieveCards = [

@@ -30,48 +30,6 @@ interface ResonanceItem {
 }
 
 
-/* ============================================
-   Initial past sessions (from prototype)
-   ============================================ */
-
-const initialInlineSessions: { text: string; label: string }[] = [
-  {
-    text: "The FloTorch benchmark result keeps surprising me \u2014 recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise. The fragments semantic chunking produces are too small \u2014 averaging 43 tokens \u2014 and the LLM doesn't get enough context per chunk to reason well. Maybe the lesson is: don't optimize for retrieval precision at the expense of generation quality. The chunk needs to be useful to the reader (the LLM), not just findable by the retriever.",
-    label: 'Mar 31 \u00b7 6 min session \u00b7 276 words',
-  },
-  {
-    text: "Evals are the product development process, not a QA step. Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it \u2014 you define what \u201cgood\u201d looks like, measure where you are, and then engineer toward the gap. The eval system IS the development environment. Which means for my notebook, I should build the eval pipeline before I build the generation layer. Start with: can I retrieve the right chunks for a set of test queries? Measure that. Only then worry about what the LLM does with them.",
-    label: 'Apr 1 \u00b7 14 min session \u00b7 518 words',
-  },
-  {
-    text: 'The fundamental insight about hybrid retrieval is that BM25 and vector search fail in complementary ways. When I search for \u201cRAGAS faithfulness metric\u201d I need exact keyword match \u2014 dense retrieval might return chunks about evaluation generally but miss the specific framework. When I search for \u201chow to know if my retrieval is working\u201d I need semantic understanding \u2014 BM25 won\'t match because none of those keywords appear in the relevant documents. My notebook will have both types of queries. Technical terms I remember exactly, and fuzzy conceptual questions where I remember the idea but not the words.',
-    label: 'today \u00b7 new session',
-  },
-]
-
-const initialPreviousSessions: PastSession[] = [
-  {
-    id: 'ps-1',
-    text: 'Why hybrid retrieval is non-negotiable for my notebook. The fundamental insight is that BM25 and vector search fail in complementary ways. When I search for "RAGAS faithfulness metric" I need exact keyword match. When I search for "how to know if my retrieval is working" I need semantic understanding.',
-    date: '2 days ago',
-    duration: '8 min session',
-    wordCount: 342,
-  },
-  {
-    id: 'ps-2',
-    text: "Evals are the product development process, not a QA step. Hamel's core argument reframed: most teams build first and measure later. The teams that win measure first and build in response to what they see. This inverts the entire workflow. You don't write a prompt and then eval it.",
-    date: '4 days ago',
-    duration: '14 min session',
-    wordCount: 518,
-  },
-  {
-    id: 'ps-3',
-    text: 'Chunking: the decision that silently makes or breaks everything. The FloTorch benchmark result keeps surprising me \u2014 recursive 512-token splitting beating semantic chunking. My instinct says semantic should win because it respects meaning boundaries. But the data says otherwise.',
-    date: '1 week ago',
-    duration: '6 min session',
-    wordCount: 276,
-  },
-]
 
 /* ============================================
    Helpers
@@ -97,8 +55,10 @@ export function DialogueView() {
   const [expandedSession, setExpandedSession] = useState<string | null>(null)
 
   // Past sessions
-  const [inlineSessions, setInlineSessions] = useState(initialInlineSessions)
-  const [previousSessions, setPreviousSessions] = useState(initialPreviousSessions)
+  const [inlineSessions, setInlineSessions] = useState<{ text: string; label: string }[]>([
+    { text: '', label: 'new session' },
+  ])
+  const [previousSessions, setPreviousSessions] = useState<PastSession[]>([])
 
   // Refs for thresholds and timers
   const wordThreshold = useRef(20)
@@ -311,12 +271,12 @@ export function DialogueView() {
   }
 
   return (
-    <PageContainer mode="dialogue" maxWidth={680}>
+    <PageContainer mode="notes" maxWidth={680}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>
-            capture <span className={styles.titleAccent}>&middot;</span> dialogue
+            capture <span className={styles.titleAccent}>&middot;</span> notes
           </h1>
           <div className={styles.saveStatus} data-status={saveStatus}>
             <span className={styles.saveDot} />

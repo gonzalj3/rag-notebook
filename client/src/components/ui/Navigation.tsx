@@ -4,7 +4,7 @@ import styles from './Navigation.module.css'
 const captureRoutes = [
   { to: '/capture/curation', label: 'curation' },
   { to: '/capture/study', label: 'study' },
-  { to: '/capture/dialogue', label: 'dialogue' },
+  { to: '/capture/dialogue', label: 'notes' },
 ] as const
 
 const retrieveRoutes = [
