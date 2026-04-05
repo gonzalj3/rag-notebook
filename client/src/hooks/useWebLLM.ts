@@ -197,7 +197,7 @@ export function useWebLLM() {
         messages,
         stream: true,
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: 4096,
       })
 
       for await (const chunk of response) {
@@ -269,7 +269,7 @@ export function useWebLLM() {
         { role: 'user', content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 4096,
     })
 
     return response.choices[0]?.message?.content ?? ''

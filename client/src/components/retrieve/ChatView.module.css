@@ -8,7 +8,10 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100vh;
+  max-height: 100vh;
   padding: 0 20px;
 }
 
@@ -334,10 +337,73 @@
   font-style: italic;
 }
 
+/* Retrieval settings (Tier 1/2 toggles) */
+.retrievalSettings {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.settingToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background var(--transition-ui);
+}
+.settingToggle:hover {
+  background: var(--surface-hover);
+}
+
+.settingToggle input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.settingLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settingLabel strong {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.settingDesc {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  font-family: var(--font-serif);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+@media (max-width: 580px) {
+  .retrievalSettings {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
 /* Input area */
 .inputArea {
   flex-shrink: 0;
-  padding: 12px 0 24px;
+  padding: 12px 0 12px;
   border-top: 1px solid var(--border);
 }
 

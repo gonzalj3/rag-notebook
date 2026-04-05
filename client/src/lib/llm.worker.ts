@@ -124,8 +124,10 @@ async function generate(messages: { role: string; content: string }[]) {
 
     const result = await model.generate({
       ...inputs,
-      do_sample: false,
-      max_new_tokens: 1024,
+      do_sample: true,
+      temperature: 0.7,
+      top_p: 0.9,
+      max_new_tokens: 512,
       streamer,
       stopping_criteria,
       return_dict_in_generate: true,

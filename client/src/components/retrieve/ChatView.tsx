@@ -203,11 +203,17 @@ function ModelLoadBanner({ onLoad, isLoading, loadProgress, loadStatus, error, w
 export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [phase, setPhase] = useState<'idle' | 'retrieving' | 'generating'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'retrieving' | 'generating' | 'rewriting'>('idle')
   const [corpusSummary, setCorpusSummary] = useState<string>('')
+  // Tier 1: Query Rewriting — LLM rewrites follow-ups into standalone search queries before retrieval
+  const [queryRewriting, setQueryRewriting] = useState(true)
+  // Tier 2: Sticky Sources — previously-cited sources stay available across turns
+  const [stickySources, setStickySources] = useState(true)
+  const [lastRewrittenQuery, setLastRewrittenQuery] = useState<string>('')
+  const recentSourcesRef = useRef<QueryResult[]>([])
   const messagesRef = useRef<HTMLDivElement>(null)
   const { ref: textareaRef, resize } = useAutoResize()
-  const { loadModel, generate, isReady, isLoading, loadProgress, loadStatus, error, modelName, webgpuSupported } = useWebLLM()
+  const { loadModel, generate, generateComplete, isReady, isLoading, loadProgress, loadStatus, error, modelName, webgpuSupported } = useWebLLM()
 
   // Fetch corpus summary on mount — gives the LLM awareness of what's in the collection
   useEffect(() => {
@@ -256,25 +262,69 @@ export function ChatView() {
     setInput('')
     requestAnimationFrame(() => resize())
 
-    // Phase 1: Retrieve relevant chunks from server
+    // Tier 1: Query Rewriting — rewrite follow-ups into standalone search queries
+    let searchQuery = text
+    if (queryRewriting && messages.length >= 2) {
+      setPhase('rewriting')
+      try {
+        const recentHistory = messages.slice(-4).map((m) => {
+          const role = m.role === 'human' ? 'User' : 'Assistant'
+          const content = m.content.replace(/<think>[\s\S]*?<\/think>/g, '').slice(0, 250)
+          return `${role}: ${content}`
+        }).join('\n')
+
+        const rewritten = await generateComplete(
+          'You reformulate follow-up questions into standalone search queries. Output ONLY the search query on a single line, no explanation or preamble.',
+          `Given this conversation and a follow-up question, write a standalone search query that captures what the user is looking for. Include specific names, topics, and keywords from the conversation context.\n\nConversation:\n${recentHistory}\n\nFollow-up: ${text}\n\nStandalone search query:`,
+        )
+        // Take first non-empty line, strip quotes/markdown, fall back to original
+        const firstLine = rewritten.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? ''
+        const cleaned = firstLine.replace(/^["'`]|["'`]$/g, '').replace(/^(Standalone query:|Query:)\s*/i, '').trim()
+        searchQuery = cleaned || text
+        setLastRewrittenQuery(searchQuery)
+        console.log('[query rewrite]', { original: text, rewritten: searchQuery })
+      } catch (err) {
+        console.warn('[query rewrite] failed, using original:', err)
+        setLastRewrittenQuery('')
+      }
+    } else {
+      setLastRewrittenQuery('')
+    }
+
+    // Phase: Retrieve relevant chunks from server using (possibly rewritten) query
     setPhase('retrieving')
     let results: QueryResult[] = []
     try {
-      results = await query(text, { limit: 5 })
+      results = await query(searchQuery, { limit: 5 })
     } catch {
       // If retrieval fails, generate without context
     }
 
-    // Phase 2: Generate response from retrieved chunks
-    setPhase('generating')
-
-    // Deduplicate results by document ID
+    // Deduplicate fresh results by document ID
     const seen = new Set<string>()
-    const uniqueResults = results.filter((r) => {
+    let uniqueResults = results.filter((r) => {
       if (seen.has(r.document.id)) return false
       seen.add(r.document.id)
       return true
     })
+
+    // Tier 2: Sticky Sources — merge previous turn's sources, dedupe by doc ID
+    if (stickySources && recentSourcesRef.current.length > 0) {
+      for (const prev of recentSourcesRef.current) {
+        if (!seen.has(prev.document.id)) {
+          seen.add(prev.document.id)
+          uniqueResults.push(prev)
+        }
+      }
+      // Cap at 5 total to keep LLM context manageable
+      uniqueResults = uniqueResults.slice(0, 5)
+    }
+
+    // Update sticky refs for next turn
+    recentSourcesRef.current = uniqueResults.slice(0, 5)
+
+    // Phase: Generate response from retrieved chunks
+    setPhase('generating')
 
     const chunks = uniqueResults.map((r) => r.highlights[0] || r.document.excerpt)
     const sources = uniqueResults
@@ -313,7 +363,7 @@ export function ChatView() {
     }
 
     setPhase('idle')
-  }, [input, phase, isReady, messages, generate, resize])
+  }, [input, phase, isReady, messages, generate, generateComplete, resize, corpusSummary, queryRewriting, stickySources])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -367,9 +417,42 @@ export function ChatView() {
             <AiMessage key={msg.id} content={msg.content} sources={msg.sources} modelName={displayModelName} />
           )
         )}
-        {phase === 'retrieving' && <TypingIndicator text="searching your corpus..." />}
+        {phase === 'rewriting' && <TypingIndicator text="rewriting query for context..." />}
+        {phase === 'retrieving' && (
+          <TypingIndicator
+            text={lastRewrittenQuery ? `searching: "${lastRewrittenQuery.slice(0, 80)}${lastRewrittenQuery.length > 80 ? '…' : ''}"` : 'searching your corpus...'}
+          />
+        )}
         {phase === 'generating' && <TypingIndicator text="generating response..." />}
       </div>
+
+      {/* Retrieval settings (Tier 1 + Tier 2 toggles) */}
+      {isReady && (
+        <div className={styles.retrievalSettings}>
+          <label className={styles.settingToggle}>
+            <input
+              type="checkbox"
+              checked={queryRewriting}
+              onChange={(e) => setQueryRewriting(e.target.checked)}
+            />
+            <span className={styles.settingLabel}>
+              <strong>Tier 1: Query Rewriting</strong>
+              <span className={styles.settingDesc}>LLM rewrites follow-ups with conversation context before retrieval</span>
+            </span>
+          </label>
+          <label className={styles.settingToggle}>
+            <input
+              type="checkbox"
+              checked={stickySources}
+              onChange={(e) => setStickySources(e.target.checked)}
+            />
+            <span className={styles.settingLabel}>
+              <strong>Tier 2: Sticky Sources</strong>
+              <span className={styles.settingDesc}>Previously-cited sources stay available across turns</span>
+            </span>
+          </label>
+        </div>
+      )}
 
       {/* Input */}
       <div className={styles.inputArea}>
