@@ -1,12 +1,84 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { ChatMessage, QueryResult } from '@/lib/types'
-import { query } from '@/lib/api'
+import { query, getDocuments } from '@/lib/api'
 import { useWebLLM } from '@/hooks/useWebLLM'
+import { useLlmStore } from '@/stores/llm'
 import { useAutoResize } from '@/hooks/useAutoResize'
 import styles from './ChatView.module.css'
 
+const AVAILABLE_MODELS = [
+  { id: 'gemma-4-E2B-it', label: 'Gemma 4 E2B' },
+  { id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Gemma 2 2B' },
+  { id: 'Qwen3-1.7B-q4f16_1-MLC', label: 'Qwen3 1.7B' },
+  { id: 'Qwen3-4B-q4f16_1-MLC', label: 'Qwen3 4B' },
+] as const
+
+/** Parse think blocks and response content separately */
+function parseThinkContent(text: string): { thinking: string; response: string } {
+  // Extract completed think blocks
+  const thinkMatch = text.match(/<think>([\s\S]*?)<\/think>/)
+  // Also handle unclosed think block (still streaming)
+  const openThinkMatch = !thinkMatch ? text.match(/<think>([\s\S]*)$/) : null
+
+  const thinking = thinkMatch?.[1]?.trim() || openThinkMatch?.[1]?.trim() || ''
+  let response = text
+    .replace(/<think>[\s\S]*?<\/think>/g, '')
+    .replace(/<think>[\s\S]*$/g, '')
+    .trimStart()
+
+  return { thinking, response }
+}
+
+function ThinkingBlock({ content }: { content: string }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!content) return null
+
+  return (
+    <div className={styles.thinkBlock}>
+      <button className={styles.thinkToggle} onClick={() => setExpanded(!expanded)}>
+        {expanded ? '▾ hide reasoning' : '▸ show reasoning'}
+      </button>
+      {expanded && <div className={styles.thinkContent}>{content}</div>}
+    </div>
+  )
+}
+
 function SourceBadge({ type }: { type: string }) {
   return <span className={styles.sourceType}>{type}</span>
+}
+
+function SourceItem({ source, index }: { source: QueryResult; index: number }) {
+  const [expanded, setExpanded] = useState(false)
+  const excerpt = source.highlights[0] || source.document.excerpt
+
+  return (
+    <div className={styles.sourceItem}>
+      <span className={styles.sourceNum}>{index + 1}</span>
+      <div className={styles.sourceDetail}>
+        <div className={styles.sourceTitle}>
+          {source.document.title || excerpt.slice(0, 60)}
+        </div>
+        <div className={styles.sourceMeta}>
+          <SourceBadge type={source.document.type} />
+          {source.document.source ? ` · ${source.document.source}` : ''}
+          {' · '}
+          {source.document.createdAt}
+          {excerpt && (
+            <span className={styles.sourceExcerpt}> — {excerpt.slice(0, 100)}{excerpt.length > 100 ? '…' : ''}</span>
+          )}
+        </div>
+        <div className={styles.sourceActions}>
+          <button className={styles.sourceAction} onClick={() => setExpanded(!expanded)}>
+            {expanded ? 'collapse' : 'view'}
+          </button>
+          <button className={styles.sourceAction}>+ project</button>
+        </div>
+        {expanded && (
+          <div className={styles.sourceFullContent}>{source.document.content}</div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function SourceCitations({ sources }: { sources: NonNullable<ChatMessage['sources']> }) {
@@ -16,22 +88,7 @@ function SourceCitations({ sources }: { sources: NonNullable<ChatMessage['source
         grounded in {sources.length} source{sources.length !== 1 ? 's' : ''} from your corpus
       </div>
       {sources.map((source, i) => (
-        <div key={source.document.id} className={styles.sourceItem}>
-          <span className={styles.sourceNum}>{i + 1}</span>
-          <div className={styles.sourceDetail}>
-            <div className={styles.sourceTitle}>{source.document.title}</div>
-            <div className={styles.sourceMeta}>
-              <SourceBadge type={source.document.type} />
-              {source.document.source ? ` · ${source.document.source}` : ''}
-              {' · '}
-              {source.document.createdAt}
-            </div>
-            <div className={styles.sourceActions}>
-              <button className={styles.sourceAction}>view</button>
-              <button className={styles.sourceAction}>+ project</button>
-            </div>
-          </div>
-        </div>
+        <SourceItem key={source.document.id} source={source} index={i} />
       ))}
     </div>
   )
@@ -62,13 +119,16 @@ function HumanMessage({ content }: { content: string }) {
 }
 
 function AiMessage({ content, sources, modelName }: { content: string; sources?: ChatMessage['sources']; modelName: string }) {
+  const { thinking, response } = parseThinkContent(content)
+
   return (
     <div className={styles.msg}>
       <div className={styles.msgAi}>
         <div className={`${styles.msgLabel} ${styles.msgLabelAi}`}>
           notebook <span className={styles.modelName}>· {modelName}</span>
         </div>
-        <div className={styles.msgTextAi}>{content}</div>
+        <ThinkingBlock content={thinking} />
+        <div className={styles.msgTextAi}>{response}</div>
         {sources && sources.length > 0 && <SourceCitations sources={sources} />}
       </div>
     </div>
@@ -83,6 +143,8 @@ function ModelLoadBanner({ onLoad, isLoading, loadProgress, loadStatus, error, w
   error: string | null
   webgpuSupported: boolean
 }) {
+  const { modelName, setModelName } = useLlmStore()
+
   if (!webgpuSupported) {
     return (
       <div className={styles.loadBanner}>
@@ -113,8 +175,19 @@ function ModelLoadBanner({ onLoad, isLoading, loadProgress, loadStatus, error, w
 
   return (
     <div className={styles.loadBanner}>
-      <div className={styles.loadText}>Load the on-device model to start chatting with your corpus.</div>
-      <button className={styles.loadBtn} onClick={onLoad}>load model</button>
+      <div className={styles.loadText}>Select a model and load it to start chatting with your corpus.</div>
+      <div className={styles.modelPicker}>
+        {AVAILABLE_MODELS.map((m) => (
+          <button
+            key={m.id}
+            className={`${styles.modelOption} ${modelName === m.id ? styles.modelOptionActive : ''}`}
+            onClick={() => setModelName(m.id)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <button className={styles.loadBtn} onClick={onLoad}>load {AVAILABLE_MODELS.find((m) => m.id === modelName)?.label ?? 'model'}</button>
     </div>
   )
 }
@@ -123,9 +196,33 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [phase, setPhase] = useState<'idle' | 'retrieving' | 'generating'>('idle')
+  const [corpusSummary, setCorpusSummary] = useState<string>('')
   const messagesRef = useRef<HTMLDivElement>(null)
   const { ref: textareaRef, resize } = useAutoResize()
   const { loadModel, generate, isReady, isLoading, loadProgress, loadStatus, error, modelName, webgpuSupported } = useWebLLM()
+
+  // Fetch corpus summary on mount — gives the LLM awareness of what's in the collection
+  useEffect(() => {
+    getDocuments(undefined, 100).then((docs) => {
+      const byType: Record<string, string[]> = {}
+      for (const doc of docs) {
+        const type = doc.type
+        if (!byType[type]) byType[type] = []
+        const label = doc.title || doc.excerpt.slice(0, 60)
+        if (label) byType[type].push(label)
+      }
+
+      const lines: string[] = [`The user's corpus contains ${docs.length} documents:`]
+      for (const [type, titles] of Object.entries(byType)) {
+        lines.push(`\n${type} (${titles.length}):`)
+        for (const t of titles.slice(0, 10)) {
+          lines.push(`  - ${t}`)
+        }
+        if (titles.length > 10) lines.push(`  ... and ${titles.length - 10} more`)
+      }
+      setCorpusSummary(lines.join('\n'))
+    }).catch(() => {})
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     if (messagesRef.current) {
@@ -163,8 +260,16 @@ export function ChatView() {
     // Phase 2: Generate response from retrieved chunks
     setPhase('generating')
 
-    const chunks = results.map((r) => r.highlights[0] || r.document.excerpt)
-    const sources = results.map((r) => r)
+    // Deduplicate results by document ID
+    const seen = new Set<string>()
+    const uniqueResults = results.filter((r) => {
+      if (seen.has(r.document.id)) return false
+      seen.add(r.document.id)
+      return true
+    })
+
+    const chunks = uniqueResults.map((r) => r.highlights[0] || r.document.excerpt)
+    const sources = uniqueResults
 
     // Build conversation history for context
     const history = messages
@@ -186,16 +291,16 @@ export function ChatView() {
     }])
 
     try {
-      for await (const token of generate(text, chunks, history)) {
+      for await (const token of generate(text, chunks, history, corpusSummary)) {
         fullContent += token
         setMessages((prev) =>
           prev.map((m) => m.id === aiMsgId ? { ...m, content: fullContent } : m)
         )
       }
     } catch (err) {
-      fullContent = fullContent || `Error generating response: ${err instanceof Error ? err.message : 'unknown error'}`
+      const errorContent = fullContent || `Error generating response: ${err instanceof Error ? err.message : 'unknown error'}`
       setMessages((prev) =>
-        prev.map((m) => m.id === aiMsgId ? { ...m, content: fullContent } : m)
+        prev.map((m) => m.id === aiMsgId ? { ...m, content: errorContent } : m)
       )
     }
 

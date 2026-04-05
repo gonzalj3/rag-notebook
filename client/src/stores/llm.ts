@@ -18,7 +18,7 @@ interface LlmStore {
 export const useLlmStore = create<LlmStore>()((set) => ({
   isLoading: false,
   isReady: false,
-  modelName: 'Qwen3-1.7B-q4f16_1-MLC',
+  modelName: 'gemma-4-E2B-it',
   loadProgress: 0,
   loadStatus: '',
   webgpuSupported: typeof navigator !== 'undefined' && 'gpu' in navigator,

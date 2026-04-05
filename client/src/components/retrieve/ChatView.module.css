@@ -132,7 +132,10 @@
   font-family: var(--font-body);
   font-size: 0.9rem;
   line-height: 1.7;
-  color: var(--text-primary);
+  color: #2d2d2d;
+}
+:global([data-theme="dark"]) .msgTextHuman {
+  color: #ededf0;
 }
 
 /* AI message */
@@ -144,9 +147,12 @@
   font-family: var(--font-serif);
   font-size: 0.9rem;
   line-height: 1.8;
-  color: var(--text-secondary);
+  color: #2d2d2d;
   padding: 0 2px;
   white-space: pre-wrap;
+}
+:global([data-theme="dark"]) .msgTextAi {
+  color: #e0e0e4;
 }
 
 /* Source citations */
@@ -160,8 +166,8 @@
 
 .sourcesLabel {
   font-family: var(--font-mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--source);
   font-weight: 500;
@@ -205,23 +211,23 @@
 
 .sourceTitle {
   font-family: var(--font-serif);
-  font-size: 0.76rem;
-  color: var(--text-secondary);
+  font-size: 0.85rem;
+  color: #4a4a4a;
   line-height: 1.4;
 }
 
 .sourceType {
   font-family: var(--font-mono);
-  font-size: 0.5rem;
-  color: var(--text-faint);
+  font-size: 0.6rem;
+  color: #6d6d6d;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .sourceMeta {
   font-family: var(--font-mono);
-  font-size: 0.55rem;
-  color: var(--text-faint);
+  font-size: 0.65rem;
+  color: #6d6d6d;
   margin-top: 2px;
 }
 
@@ -233,8 +239,8 @@
 
 .sourceAction {
   font-family: var(--font-mono);
-  font-size: 0.48rem;
-  color: var(--text-faint);
+  font-size: 0.6rem;
+  color: #6d6d6d;
   background: none;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -248,6 +254,37 @@
 .sourceAction:hover {
   color: var(--text-muted);
   border-color: var(--border-focus);
+}
+
+.sourceExcerpt {
+  color: #4a4a4a;
+  font-style: italic;
+  font-family: var(--font-serif);
+  font-size: 0.65rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sourceFullContent {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: #2d2d2d;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: fade-in 0.2s ease-out;
+}
+:global([data-theme="dark"]) .sourceFullContent {
+  color: #e0e0e4;
+}
+:global([data-theme="dark"]) .sourceExcerpt {
+  color: #a0a0a8;
 }
 
 /* Typing indicator */
@@ -384,6 +421,40 @@
   border-color: var(--mode-color);
 }
 
+/* Think block (collapsible reasoning) */
+.thinkBlock {
+  margin-bottom: 8px;
+}
+
+.thinkToggle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: #6d6d6d;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color var(--transition-ui);
+}
+.thinkToggle:hover {
+  color: var(--text-muted);
+}
+
+.thinkContent {
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #4a4a4a;
+  white-space: pre-wrap;
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Model load banner */
 .loadBanner {
   padding: 16px 20px;
@@ -400,6 +471,36 @@
   color: var(--text-muted);
   margin-bottom: 8px;
 }
+.modelPicker {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.modelOption {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-ui);
+}
+.modelOption:hover {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+}
+.modelOptionActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
 .loadBtn {
   font-family: var(--font-mono);
   font-size: 0.65rem;
