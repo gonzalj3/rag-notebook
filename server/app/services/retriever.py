@@ -19,12 +19,49 @@ class RetrievalResult:
 
 RRF_K = 60
 
+# Words that signal the user is asking about a document as a whole
+# (summary, thesis, overview) rather than specific content within it.
+# When detected, we boost chunk_index=0 (the opening/thesis) results.
+META_QUERY_SIGNALS = {
+    "thesis", "summary", "summarize", "summarise", "overview",
+    "gist", "abstract", "premise", "synopsis",
+}
+META_BOOST_FACTOR = 1.5
+
+
+def _is_meta_query(query_text: str) -> bool:
+    """Detect queries asking for the overall point of a document."""
+    tokens = set(query_text.lower().split())
+    # Strip punctuation for common suffixes
+    tokens = {t.strip(".,?!'\"") for t in tokens}
+    if tokens & META_QUERY_SIGNALS:
+        return True
+    # Also check for "main point", "main argument", "main idea" as multi-word phrases
+    lower = query_text.lower()
+    if any(phrase in lower for phrase in ("main point", "main argument", "main idea", "main takeaway")):
+        return True
+    return False
+
+
+def _apply_meta_boost(results: list["RetrievalResult"]) -> list["RetrievalResult"]:
+    """Boost the score of chunk_index=0 results and re-sort.
+
+    When the user asks a meta-question, the opening/thesis of each document
+    is more likely to contain the answer than mid-article chunks.
+    """
+    for r in results:
+        if r.chunk_index == 0:
+            r.score *= META_BOOST_FACTOR
+    results.sort(key=lambda r: r.score, reverse=True)
+    return results
+
 
 async def _vector_search(
     db: AsyncSession,
     query_embedding: list[float],
     limit: int = 20,
     source_types: list[str] | None = None,
+    source_url: str | None = None,
     tag_names: list[str] | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -36,6 +73,9 @@ async def _vector_search(
     if source_types:
         conditions.append("d.source_type = ANY(:source_types)")
         params["source_types"] = source_types
+    if source_url:
+        conditions.append("d.source_url = :source_url")
+        params["source_url"] = source_url
     if tag_names:
         conditions.append("EXISTS (SELECT 1 FROM document_tags dt JOIN tags t ON dt.tag_id = t.id WHERE dt.document_id = d.id AND t.name = ANY(:tag_names))")
         params["tag_names"] = tag_names
@@ -66,6 +106,7 @@ async def _bm25_search(
     query_text: str,
     limit: int = 20,
     source_types: list[str] | None = None,
+    source_url: str | None = None,
     tag_names: list[str] | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -77,6 +118,9 @@ async def _bm25_search(
     if source_types:
         conditions.append("d.source_type = ANY(:source_types)")
         params["source_types"] = source_types
+    if source_url:
+        conditions.append("d.source_url = :source_url")
+        params["source_url"] = source_url
     if tag_names:
         conditions.append("EXISTS (SELECT 1 FROM document_tags dt JOIN tags t ON dt.tag_id = t.id WHERE dt.document_id = d.id AND t.name = ANY(:tag_names))")
         params["tag_names"] = tag_names
@@ -144,6 +188,7 @@ async def hybrid_search(
     query_text: str,
     limit: int = 5,
     source_types: list[str] | None = None,
+    source_url: str | None = None,
     tag_names: list[str] | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -152,6 +197,7 @@ async def hybrid_search(
 
     filter_kwargs = {
         "source_types": source_types,
+        "source_url": source_url,
         "tag_names": tag_names,
         "date_from": date_from,
         "date_to": date_to,
@@ -161,4 +207,10 @@ async def hybrid_search(
     bm25_results = await _bm25_search(db, query_text, limit=20, **filter_kwargs)
 
     fused = _rrf_fuse(vector_results, bm25_results)
+
+    # Apply meta-query boost: for "summarize/thesis/overview" questions,
+    # prefer the opening chunk of each document
+    if _is_meta_query(query_text):
+        fused = _apply_meta_boost(fused)
+
     return fused[:limit]

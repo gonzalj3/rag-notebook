@@ -41,6 +41,7 @@ export interface Project {
 export interface QueryFilters {
   types?: SourceType[]
   tags?: string[]
+  sourceUrl?: string
   limit?: number
 }
 

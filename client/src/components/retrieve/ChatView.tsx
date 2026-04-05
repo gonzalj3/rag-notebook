@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { ChatMessage, QueryResult } from '@/lib/types'
 import { query, getDocuments } from '@/lib/api'
+import { extractUrlFromQuery, matchKnownSourceUrl } from '@/lib/queryUtils'
 import { useWebLLM } from '@/hooks/useWebLLM'
 import { useLlmStore } from '@/stores/llm'
 import { useAutoResize } from '@/hooks/useAutoResize'
@@ -209,6 +210,8 @@ export function ChatView() {
   const [queryRewriting, setQueryRewriting] = useState(true)
   // Tier 2: Sticky Sources — previously-cited sources stay available across turns
   const [stickySources, setStickySources] = useState(true)
+  // Tier 3: URL-Aware Retrieval — detect URLs/domains in queries, filter to that document only
+  const [urlAware, setUrlAware] = useState(true)
   const [lastRewrittenQuery, setLastRewrittenQuery] = useState<string>('')
   const recentSourcesRef = useRef<QueryResult[]>([])
   const messagesRef = useRef<HTMLDivElement>(null)
@@ -291,11 +294,30 @@ export function ChatView() {
       setLastRewrittenQuery('')
     }
 
+    // Tier 3: URL-Aware Retrieval — if the query references a known document
+    // by URL or domain, filter retrieval to just that document
+    let filterSourceUrl: string | undefined
+    if (urlAware) {
+      // Check both the original user message AND the rewritten query
+      const candidate = extractUrlFromQuery(text) || extractUrlFromQuery(searchQuery)
+      if (candidate) {
+        // Match against URLs from sticky sources (recently seen) first, then corpus at large
+        const knownUrls = [
+          ...recentSourcesRef.current.map((r) => r.document.source).filter((u): u is string => !!u),
+        ]
+        const matched = matchKnownSourceUrl(candidate, knownUrls)
+        if (matched) {
+          filterSourceUrl = matched
+          console.log('[url-aware] matched', { candidate, matched })
+        }
+      }
+    }
+
     // Phase: Retrieve relevant chunks from server using (possibly rewritten) query
     setPhase('retrieving')
     let results: QueryResult[] = []
     try {
-      results = await query(searchQuery, { limit: 5 })
+      results = await query(searchQuery, { limit: 5, sourceUrl: filterSourceUrl })
     } catch {
       // If retrieval fails, generate without context
     }
@@ -363,7 +385,7 @@ export function ChatView() {
     }
 
     setPhase('idle')
-  }, [input, phase, isReady, messages, generate, generateComplete, resize, corpusSummary, queryRewriting, stickySources])
+  }, [input, phase, isReady, messages, generate, generateComplete, resize, corpusSummary, queryRewriting, stickySources, urlAware])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -449,6 +471,17 @@ export function ChatView() {
             <span className={styles.settingLabel}>
               <strong>Tier 2: Sticky Sources</strong>
               <span className={styles.settingDesc}>Previously-cited sources stay available across turns</span>
+            </span>
+          </label>
+          <label className={styles.settingToggle}>
+            <input
+              type="checkbox"
+              checked={urlAware}
+              onChange={(e) => setUrlAware(e.target.checked)}
+            />
+            <span className={styles.settingLabel}>
+              <strong>Tier 3: URL-Aware Retrieval</strong>
+              <span className={styles.settingDesc}>When query mentions a URL/domain, filter to that document</span>
             </span>
           </label>
         </div>

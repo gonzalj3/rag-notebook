@@ -75,7 +75,8 @@ export async function query(text: string, filters?: QueryFilters): Promise<Query
     const serverFilters: Record<string, unknown> = {}
     if (filters.types?.length) serverFilters.source_types = filters.types
     if (filters.tags?.length) serverFilters.tags = filters.tags
-    body.filters = serverFilters
+    if (filters.sourceUrl) serverFilters.source_url = filters.sourceUrl
+    if (Object.keys(serverFilters).length) body.filters = serverFilters
   }
   if (filters?.limit) body.limit = filters.limit
 

@@ -37,6 +37,7 @@ async def query_documents(req: QueryRequest, db: AsyncSession = Depends(get_db))
         query_text=req.text,
         limit=req.limit,
         source_types=filters.source_types if filters else None,
+        source_url=filters.source_url if filters else None,
         tag_names=filters.tags if filters else None,
         date_from=str(filters.date_from) if filters and filters.date_from else None,
         date_to=str(filters.date_to) if filters and filters.date_to else None,

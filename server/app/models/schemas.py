@@ -84,6 +84,7 @@ class IngestUrlResponse(BaseModel):
 
 class QueryFilters(BaseModel):
     source_types: list[str] | None = None
+    source_url: str | None = None
     tags: list[str] | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None

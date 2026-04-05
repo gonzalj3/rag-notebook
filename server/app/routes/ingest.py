@@ -82,9 +82,18 @@ async def _ingest_document(
         db.add(chunk_row)
         await db.flush()
         # Set tsvector via raw SQL (SQLAlchemy doesn't support to_tsvector natively)
+        # Include title + URL domain so BM25 matches site/article references
+        domain = ""
+        if source_url:
+            try:
+                from urllib.parse import urlparse
+                domain = urlparse(source_url).netloc.replace("www.", "")
+            except Exception:
+                domain = ""
+        tsv_text = " ".join(filter(None, [source_title or "", domain, chunk_result.content]))
         await db.execute(
             text("UPDATE chunks SET tsv = to_tsvector('english', :content) WHERE id = :id"),
-            {"content": chunk_result.content, "id": str(chunk_row.id)},
+            {"content": tsv_text, "id": str(chunk_row.id)},
         )
 
     # Create tags
