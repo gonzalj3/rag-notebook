@@ -200,9 +200,12 @@ async def get_suggestions(project_id: uuid.UUID, db: AsyncSession = Depends(get_
     search_results = await hybrid_search(db, query_text, limit=10)
 
     suggestions = []
+    seen_doc_ids: set[str] = set()
     for r in search_results:
-        if str(r.document_id) in existing_doc_ids:
+        doc_id_str = str(r.document_id)
+        if doc_id_str in existing_doc_ids or doc_id_str in seen_doc_ids:
             continue
+        seen_doc_ids.add(doc_id_str)
         doc_result = await db.execute(
             select(Document).options(selectinload(Document.tags)).where(Document.id == r.document_id)
         )

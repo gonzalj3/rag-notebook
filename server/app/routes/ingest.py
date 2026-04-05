@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.database import get_db
 from app.models.schemas import (
@@ -137,6 +138,40 @@ async def ingest_text(req: IngestTextRequest, db: AsyncSession = Depends(get_db)
 @router.post("/url", response_model=IngestUrlResponse)
 async def ingest_url(req: IngestUrlRequest, db: AsyncSession = Depends(get_db)):
     from app.services.scraper import scrape_url
+
+    # Deduplicate: if this URL was already ingested, return the existing document
+    existing = await db.execute(
+        select(Document).options(selectinload(Document.tags), selectinload(Document.chunks))
+        .where(Document.source_url == req.url)
+    )
+    existing_doc = existing.scalar_one_or_none()
+    if existing_doc:
+        chunk_count = len(existing_doc.chunks)
+        token_count = existing_doc.token_count or 0
+        read_time = f"{max(1, token_count // 200)} min read"
+        return IngestUrlResponse(
+            document={
+                "id": existing_doc.id,
+                "content": existing_doc.content,
+                "source_type": existing_doc.source_type,
+                "source_url": existing_doc.source_url,
+                "source_title": existing_doc.source_title,
+                "user_note": existing_doc.user_note,
+                "reflection": existing_doc.reflection,
+                "is_read": existing_doc.is_read,
+                "token_count": existing_doc.token_count,
+                "tags": [t.name for t in existing_doc.tags],
+                "created_at": existing_doc.created_at,
+            },
+            preview={
+                "title": existing_doc.source_title,
+                "domain": req.url.split("//")[-1].split("/")[0],
+                "excerpt": existing_doc.content[:200],
+                "read_time": read_time,
+                "chunk_count": chunk_count,
+                "token_count": token_count,
+            },
+        )
 
     scraped = await scrape_url(req.url)
     doc, chunk_count, token_count = await _ingest_document(

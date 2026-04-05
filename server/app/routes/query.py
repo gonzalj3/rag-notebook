@@ -65,6 +65,20 @@ async def query_documents(req: QueryRequest, db: AsyncSession = Depends(get_db))
     return out
 
 
+@router.get("/documents", response_model=list[DocumentOut])
+async def list_documents(
+    source_type: str | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Document).options(selectinload(Document.tags)).order_by(Document.created_at.desc()).limit(limit)
+    if source_type:
+        stmt = stmt.where(Document.source_type == source_type)
+    result = await db.execute(stmt)
+    docs = result.scalars().all()
+    return [_doc_out(doc) for doc in docs]
+
+
 @router.get("/documents/{document_id}", response_model=DocumentDetail)
 async def get_document(document_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
